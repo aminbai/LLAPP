@@ -1,0 +1,6 @@
+{
+  "name": "Language Learner",
+  "description": "An interactive Bengali, English, and Arabic language learning app featuring games, streaks, competitive leaderboards, an AI virtual assistant, offline mode, and data backup.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
