@@ -121,7 +121,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         // Initialize TTS safely inside constructor
         try {
             tts = TextToSpeech(application, this)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
@@ -213,7 +213,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             }
             
             tts?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, "LingoPlaySpeak")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             _notificationToast.value = "🔊 Error playing audio guide (অডিও প্লে করতে সমস্যা হয়েছে)"
         }
@@ -222,6 +222,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             _robotState.value = RobotState.TALKING
             kotlinx.coroutines.delay(2000)
+            _robotState.value = RobotState.IDLE
+        }
+    }
+
+    fun playRobotDashboardGreeting() {
+        val greetings = listOf(
+            "হ্যালো! আমি আপনার ভাষা শেখার সাথী। চলুন একসাথে নতুন কিছু শিখি!",
+            "শুভ দিন! আজ কি আপনি নতুন কিছু শব্দ প্র্যাকটিস করতে প্রস্তুত?",
+            "দারুণ! আপনি আজকে পড়াশোনা করতে এসেছেন। আপনার স্ট্রাইক ধরে রাখুন!",
+            "কেমন আছেন? চলুন ভাষা শেখা শুরু করা যাক!"
+        )
+        val rand = greetings.random()
+        speakText(rand)
+        viewModelScope.launch {
+            _robotState.value = RobotState.TALKING
+            kotlinx.coroutines.delay(4000)
             _robotState.value = RobotState.IDLE
         }
     }
@@ -273,7 +289,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         try {
             tts?.stop()
             tts?.shutdown()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
@@ -505,7 +521,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         _backupStatusMessage.value = null
     }
 
+    fun toggleWeeklyStreak(index: Int) {
+        val current = weeklyStreaks.value.toMutableList()
+        if (index in current.indices) {
+            val oldValue = current[index]
+            current[index] = !oldValue
+            weeklyStreaks.value = current
+            
+            val xpGain = if (!oldValue) 20 else -20
+            val newPoints = (userProfile.value.points + xpGain).coerceAtLeast(0)
+            
+            var newStreak = userProfile.value.currentStreak
+            if (!oldValue) {
+                newStreak += 1
+                _notificationToast.value = "🎯 Daily Practice Logged! +20 XP. Streak: $newStreak (আজকের প্র্যাকটিস সম্পন্ন হয়েছে!)"
+            } else {
+                newStreak = (newStreak - 1).coerceAtLeast(0)
+                _notificationToast.value = "⚠️ Practice check-in removed. (আজকের প্র্যাকটিস তালিকাভুক্ত প্রত্যাহার করা হয়েছে)"
+            }
+            
+            viewModelScope.launch {
+                repository.updateProfile(userProfile.value.copy(
+                    points = newPoints,
+                    currentStreak = newStreak
+                ))
+            }
+        }
+    }
+
     fun triggerLocalUpdateCheck() {
         _notificationToast.value = "LingoPlay is up to date (Latest Version v1.4.2)!"
+    }
+
+    fun triggerToast(msg: String) {
+        _notificationToast.value = msg
     }
 }

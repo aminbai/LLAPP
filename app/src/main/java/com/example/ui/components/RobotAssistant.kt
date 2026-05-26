@@ -28,6 +28,7 @@ enum class RobotState {
 fun RobotAssistant(
     modifier: Modifier = Modifier,
     state: RobotState = RobotState.IDLE,
+    robotSize: androidx.compose.ui.unit.Dp = 150.dp,
     onClick: () -> Unit = {}
 ) {
     // Floating continuous hover animation (3D up and down displacement)
@@ -107,13 +108,12 @@ fun RobotAssistant(
 
     Column(
         modifier = modifier
-            .fillMaxWidth()
             .clickable { onClick() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(160.dp)
+                .size(robotSize)
                 .offset(y = hoverY.dp)
                 .graphicsLayer(
                     scaleX = breathingScale,

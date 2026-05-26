@@ -102,7 +102,7 @@ class Repository(private val db: AppDatabase) {
     val leaderboardFlow: Flow<List<LeaderboardUser>> = leaderboardDao.getLeaderboardFlow()
 
     suspend fun setupLeaderboardIfEmpty() {
-        val currentList = leaderboardFlow.firstOrNull() ?: emptyList()
+        val currentList = leaderboardDao.getLeaderboardOnce()
         if (currentList.isEmpty()) {
             val simulatedUsers = listOf(
                 LeaderboardUser(name = "Kazi Anis (English Learner)", points = 680, streak = 12, isMe = false),
@@ -117,7 +117,7 @@ class Repository(private val db: AppDatabase) {
     }
 
     private suspend fun updateMyLeaderboardScore(points: Int, streak: Int) {
-        val currentLeaderboard = leaderboardFlow.firstOrNull() ?: emptyList()
+        val currentLeaderboard = leaderboardDao.getLeaderboardOnce()
         val updated = currentLeaderboard.map {
             if (it.isMe) {
                 it.copy(points = points, streak = streak)
@@ -156,7 +156,7 @@ class Repository(private val db: AppDatabase) {
     // Serializes local progress & profile into an encrypted string (Base64 + simple XOR for E2E-like lock representation)
     suspend fun generateBackupCode(): String {
         val profile = getOrCreateProfile()
-        val progressList = progressDao.getAllProgressFlow().firstOrNull() ?: emptyList()
+        val progressList = progressDao.getAllProgressOnce()
 
         val adapterProfile = moshi.adapter(UserProfile::class.java)
         val adapterProgress = moshi.adapter(Array<LessonProgress>::class.java)

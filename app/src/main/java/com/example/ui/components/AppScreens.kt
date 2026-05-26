@@ -83,7 +83,10 @@ fun DashboardScreen(viewModel: MainViewModel) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 shape = RoundedCornerShape(24.dp),
                 border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.04f)))),
-                modifier = Modifier.fillMaxWidth().testTag("robot_advisor_card")
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.navigateTo("CHATBOT") }
+                    .testTag("robot_advisor_card")
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -92,9 +95,10 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     // Robot Assistant Custom drawing with blinking and talking state
                     RobotAssistant(
                         state = rState,
-                        modifier = Modifier.size(170.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        robotSize = 150.dp,
                         onClick = {
-                            viewModel.navigateTo("CHATBOT")
+                            viewModel.playRobotDashboardGreeting()
                         }
                     )
 
@@ -126,7 +130,13 @@ fun DashboardScreen(viewModel: MainViewModel) {
             ) {
                 // Streak Card
                 Card(
-                    modifier = Modifier.weight(1f).testTag("streak_count_card"),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { 
+                            viewModel.navigateTo("PLAN")
+                            viewModel.triggerToast("🔥 Go to Personalized Plan to log daily habits and schedule practice!")
+                        }
+                        .testTag("streak_count_card"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.02f)))),
                     shape = RoundedCornerShape(16.dp)
@@ -158,7 +168,13 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
                 // Points Card
                 Card(
-                    modifier = Modifier.weight(1f).testTag("points_rewards_card"),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { 
+                            viewModel.navigateTo("LEADERBOARD")
+                            viewModel.triggerToast("🏆 Open Leaderboard to check your current rank and compete online!")
+                        }
+                        .testTag("points_rewards_card"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.02f)))),
                     shape = RoundedCornerShape(16.dp)
@@ -214,15 +230,39 @@ fun DashboardScreen(viewModel: MainViewModel) {
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { 
+                                    viewModel.triggerToast("📈 Your current Accuracy Rate is $accRate%! Keep playing games perfectly to grow it.")
+                                }
+                                .padding(4.dp)
+                        ) {
                             Text("Accuracy Rate", fontSize = 11.sp, color = Color.Gray)
                             Text("$accRate%", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF00FFCC))
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .clickable { 
+                                    viewModel.navigateTo("GAMES")
+                                    viewModel.triggerToast("📚 Open Learning Games to review, bookmarks and flashcards!")
+                                }
+                                .padding(4.dp)
+                        ) {
                             Text("Phrases Mastered", fontSize = 11.sp, color = Color.Gray)
                             Text("$masteryCount Words", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFFFCC00))
                         }
-                        Column(horizontalAlignment = Alignment.End) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { 
+                                    viewModel.triggerToast("⚡ Log a practice check-in below to keep your high daily activity level!")
+                                }
+                                .padding(4.dp)
+                        ) {
                             Text("Daily Activity", fontSize = 11.sp, color = Color.Gray)
                             Text("100% Active", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF00FFFF))
                         }
@@ -231,7 +271,15 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // 7 days checklist horizontal grid
-                    Text("Check-In Practice Calendar:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Check-In Practice Calendar:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("👉 Tap day to log", fontSize = 10.sp, color = Color(0xFF00FFCC), fontWeight = FontWeight.SemiBold)
+                    }
+
                     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
                     val hasPracticedList by viewModel.weeklyStreaks.collectAsState()
                     Row(
@@ -240,21 +288,26 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     ) {
                         days.forEachIndexed { index, day ->
                             val done = hasPracticedList.getOrElse(index) { false }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clickable { viewModel.toggleWeeklyStreak(index) }
+                                    .padding(2.dp)
+                            ) {
                                 Text(day, fontSize = 11.sp, color = Color.Gray)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                         .background(if (done) Color(0xFF10B981) else Color.Transparent)
                                         .border(1.dp, if (done) Color.Transparent else Color.Gray, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (done) {
-                                        Icon(imageVector = Icons.Default.Check, contentDescription = "", tint = Color.White, modifier = Modifier.size(16.dp))
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = "Checked In", tint = Color.White, modifier = Modifier.size(16.dp))
                                     } else {
-                                        Text("${index+1}", fontSize = 10.sp, color = Color.Gray)
+                                        Text("${index+1}", fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -267,7 +320,13 @@ fun DashboardScreen(viewModel: MainViewModel) {
         // Active target language, level, and goals progress indicators
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().testTag("plan_overview_card"),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.navigateTo("SETTINGS")
+                        viewModel.triggerToast("⚙️ Opening Control Panel to edit your active language track!")
+                    }
+                    .testTag("plan_overview_card"),
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.02f)))),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -282,20 +341,33 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.navigateTo("SETTINGS")
+                                viewModel.triggerToast("🌐 Opening settings to switch your native or learning language!")
+                            },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Current Language Goal:", fontSize = 14.sp)
                         AssistChip(
-                            onClick = {},
+                            onClick = {
+                                viewModel.navigateTo("SETTINGS")
+                                viewModel.triggerToast("🌐 Opening settings to switch your native or learning language!")
+                            },
                             label = { Text("${profile.nativeLanguage} ➔ ${profile.targetLanguage}") },
                             leadingIcon = { Icon(Icons.Default.Info, contentDescription = "", modifier = Modifier.size(16.dp)) }
                         )
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.navigateTo("SETTINGS")
+                                viewModel.triggerToast("⚡ Open Control Panel to swap your skills assessment level!")
+                            },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -308,7 +380,12 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.navigateTo("PLAN")
+                                viewModel.triggerToast("🎯 Go to Personalized Plan to modify daily objectives & habit reminders!")
+                            },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -319,22 +396,31 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Progress chart simulation bar representation
-                    Text("Target Completed Games checklist count:", fontSize = 13.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(
-                        progress = { if (completedCount > 0) completedCount.toFloat() / 9f else 0f },
-                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
-                        color = Color(0xFF00FFCC),
-                        trackColor = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "$completedCount of 9 offline courses unlocked completed.",
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color.Gray
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.navigateTo("GAMES")
+                                viewModel.triggerToast("🎮 Grow your completed course checklist! Select and play interactive lessons.")
+                            }
+                    ) {
+                        Text("Target Completed Games checklist count:", fontSize = 13.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { if (completedCount > 0) completedCount.toFloat() / 9f else 0f },
+                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+                            color = Color(0xFF00FFCC),
+                            trackColor = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$completedCount of 9 offline courses unlocked completed.",
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
         }
@@ -342,7 +428,12 @@ fun DashboardScreen(viewModel: MainViewModel) {
         // Security / Offline Sync visual prompt
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.navigateTo("SETTINGS")
+                        viewModel.triggerToast("🔒 Local SQLite database sync is armed. Adjust encryption state in Settings!")
+                    },
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.02f)))),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f))
@@ -565,7 +656,8 @@ fun GamesScreen(viewModel: MainViewModel) {
                             }
                         }
 
-                        // Playback and step controls
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -578,57 +670,60 @@ fun GamesScreen(viewModel: MainViewModel) {
                             }
 
                             Button(
-                                onClick = { viewModel.flipFlashCard() },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.height(48.dp).testTag("flashcard_flip_btn")
-                            ) {
-                                Text(if (flipped) "Hide Translation" else "View Translation", fontWeight = FontWeight.Bold)
-                            }
+                                 onClick = { viewModel.flipFlashCard() },
+                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                 modifier = Modifier.height(48.dp).testTag("flashcard_flip_btn")
+                             ) {
+                                 Text(if (flipped) "Hide Translation" else "View Translation", fontWeight = FontWeight.Bold)
+                             }
 
-                            IconButton(
-                                onClick = { viewModel.nextFlashCard(deck.size) },
-                                modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape).testTag("flashcard_next_btn")
-                            ) {
-                                Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Next Card", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-                    }
-                }
-                "DICTIONARY" -> {
-                    // Feature 2: Searchable & Favoritable Vocabulary Dictionary & bookmark stars
-                    var query by remember { mutableStateOf("") }
-                    val starList by viewModel.bookmarkedWords.collectAsState()
-                    var showOnlyStarred by remember { mutableStateOf(false) }
+                             IconButton(
+                                 onClick = { viewModel.nextFlashCard(deck.size) },
+                                 modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape).testTag("flashcard_next_btn")
+                             ) {
+                                 Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Next Card", tint = MaterialTheme.colorScheme.primary)
+                             }
+                         }
+                     }
+                 }
+                 "DICTIONARY" -> {
+                     // Feature 2: Searchable & Favoritable Vocabulary Dictionary & bookmark stars
+                     var query by remember { mutableStateOf("") }
+                     val starList by viewModel.bookmarkedWords.collectAsState()
+                     var showOnlyStarred by remember { mutableStateOf(false) }
 
-                    val dictionaryGlossary = listOf(
-                        VocabPair("Apple", "আপেল", "Ap-ul"),
-                        VocabPair("Water", "পানি / জল", "Wa-ter"),
-                        VocabPair("Book", "বই / কিতাব", "Boi"),
-                        VocabPair("House", "ঘর / বাড়ি", "Hou-se"),
-                        VocabPair("Friend", "বন্ধু", "Frend"),
-                        VocabPair("School", "বিদ্যালয় / স্কুল", "Skul"),
-                        VocabPair("Good Morning", "শুভ সকাল", "Gud Mor-ning"),
-                        VocabPair("Thank you", "ধন্যবাদ", "Thenk yu"),
-                        VocabPair("مَرْحَبًا", "হ্যালো / স্বাগতম (Marhaban)", "Marhaban"),
-                        VocabPair("شُكْرًا", "ধন্যবাদ (Shukran)", "Shukran"),
-                        VocabPair("كِتَابٌ", "বই / কিতাবুন", "Kitabun"),
-                        VocabPair("مَاءٌ", "পানি (Ma'un)", "Ma'un"),
-                        VocabPair("بَيْتٌ", "ঘর / বাড়ি (Baytun)", "Baytun"),
-                        VocabPair("Language", "ভাষা (Bhasha)", "Bha-sha"),
-                        VocabPair("Sun", "সূর্য (Shurjo)", "Shur-jo"),
-                        VocabPair("Moon", "চন্দ্র / চাঁদ (Chondro)", "Chon-dro"),
-                        VocabPair("Bird", "পাখি (Pakhi)", "Pa-khi"),
-                        VocabPair("Fruit", "ফল (Fol)", "Fol")
-                    )
+                     val dictionaryGlossary = remember {
+                         listOf(
+                             VocabPair("Apple", "আপেল", "Ap-ul"),
+                             VocabPair("Water", "পানি / জল", "Wa-ter"),
+                             VocabPair("Book", "বই / কিতাব", "Boi"),
+                             VocabPair("House", "ঘর / বাড়ি", "Hou-se"),
+                             VocabPair("Friend", "বন্ধু", "Frend"),
+                             VocabPair("School", "বিদ্যালয় / স্কুল", "Skul"),
+                             VocabPair("Good Morning", "শুভ সকাল", "Gud Mor-ning"),
+                             VocabPair("Thank you", "ধন্যবাদ", "Thenk yu"),
+                             VocabPair("مَرْحَبًا", "হ্যালো / স্বাগতম (Marhaban)", "Marhaban"),
+                             VocabPair("شُكْرًا", "ধন্যবাদ (Shukran)", "Shukran"),
+                             VocabPair("كِتَابٌ", "বই / কিতাবুন", "Kitabun"),
+                             VocabPair("مَاءٌ", "পানি (Ma'un)", "Ma'un"),
+                             VocabPair("بَيْتٌ", "ঘর / বাড়ি (Baytun)", "Baytun"),
+                             VocabPair("Language", "ভাষা (Bhasha)", "Bha-sha"),
+                             VocabPair("Sun", "সূর্য (Shurjo)", "Shur-jo"),
+                             VocabPair("Moon", "চন্দ্র / চাঁদ (Chondro)", "Chon-dro"),
+                             VocabPair("Bird", "পাখি (Pakhi)", "Pa-khi"),
+                             VocabPair("Fruit", "ফল (Fol)", "Fol")
+                         )
+                     }
 
-                    val filteredList = dictionaryGlossary.filter { pair ->
-                        val matchesQuery = pair.word.contains(query, ignoreCase = true) ||
-                                pair.translation.contains(query, ignoreCase = true)
-                        val matchesStars = !showOnlyStarred || starList.contains(pair.word)
-                        matchesQuery && matchesStars
-                    }
-
-                    Column(
+                     val filteredList = remember(query, showOnlyStarred, starList) {
+                         dictionaryGlossary.filter { pair ->
+                             val matchesQuery = pair.word.contains(query, ignoreCase = true) ||
+                                     pair.translation.contains(query, ignoreCase = true)
+                             val matchesStars = !showOnlyStarred || starList.contains(pair.word)
+                              matchesQuery && matchesStars
+                          }
+                      }
+                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("searchable_dictionary_view"),
@@ -1668,7 +1763,7 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Micro Robot model drawing inside header
-                RobotAssistant(state = rState, modifier = Modifier.size(70.dp))
+                RobotAssistant(state = rState, modifier = Modifier.size(70.dp), robotSize = 60.dp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text("🤖 AI Assistant Robot", fontWeight = FontWeight.Bold, fontSize = 16.sp)

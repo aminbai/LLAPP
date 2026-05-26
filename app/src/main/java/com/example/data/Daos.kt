@@ -20,6 +20,9 @@ interface LessonProgressDao {
     @Query("SELECT * FROM lesson_progress")
     fun getAllProgressFlow(): Flow<List<LessonProgress>>
 
+    @Query("SELECT * FROM lesson_progress")
+    suspend fun getAllProgressOnce(): List<LessonProgress>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProgress(progress: LessonProgress)
 
@@ -46,6 +49,9 @@ interface ChatDao {
 interface LeaderboardDao {
     @Query("SELECT * FROM leaderboard_user ORDER BY points DESC")
     fun getLeaderboardFlow(): Flow<List<LeaderboardUser>>
+
+    @Query("SELECT * FROM leaderboard_user ORDER BY points DESC")
+    suspend fun getLeaderboardOnce(): List<LeaderboardUser>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsers(users: List<LeaderboardUser>)
