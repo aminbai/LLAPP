@@ -1723,11 +1723,11 @@ fun LeaderboardScreen(viewModel: MainViewModel) {
                             .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                             .padding(8.dp)
                     ) {
-                        LazyColumn(
+                        Column(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(liveFeeds.take(2)) { msg ->
+                            liveFeeds.take(2).forEach { msg ->
                                 Text(
                                     text = "• $msg",
                                     fontSize = 11.sp,

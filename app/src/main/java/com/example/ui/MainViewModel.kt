@@ -108,27 +108,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val vocabularyMastery = MutableStateFlow(12) // count of words mastered
 
     init {
-        // Initialize user database items on startup
+        // Initialize user database items on startup safely
         viewModelScope.launch {
-            repository.getOrCreateProfile()
-            repository.setupLeaderboardIfEmpty()
+            try {
+                repository.getOrCreateProfile()
+                repository.setupLeaderboardIfEmpty()
 
-            // Collect database flow to initialize and merge user (Me) changes into our real-time in-memory state
-            repository.leaderboardFlow.collect { dbUsers ->
-                val currentInMem = _leaderboard.value
-                if (currentInMem.isEmpty()) {
-                    _leaderboard.value = dbUsers
-                } else {
-                    // Update only "Me" from the DB, keep peer simulated updates
-                    val updatedList = currentInMem.map { inMemUser ->
-                        if (inMemUser.isMe) {
-                            dbUsers.find { it.isMe } ?: inMemUser
+                // Collect database flow to initialize and merge user (Me) changes into our real-time in-memory state
+                repository.leaderboardFlow.collect { dbUsers ->
+                    try {
+                        val currentInMem = _leaderboard.value
+                        if (currentInMem.isEmpty()) {
+                            _leaderboard.value = dbUsers
                         } else {
-                            inMemUser
+                            // Update only "Me" from the DB, keep peer simulated updates
+                            val updatedList = currentInMem.map { inMemUser ->
+                                if (inMemUser.isMe) {
+                                    dbUsers.find { it.isMe } ?: inMemUser
+                                } else {
+                                    inMemUser
+                                }
+                            }
+                            _leaderboard.value = updatedList
                         }
+                    } catch (innerEx: Throwable) {
+                        innerEx.printStackTrace()
                     }
-                    _leaderboard.value = updatedList
                 }
+            } catch (ex: Throwable) {
+                ex.printStackTrace()
             }
         }
 
