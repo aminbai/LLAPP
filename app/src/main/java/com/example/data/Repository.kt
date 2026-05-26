@@ -105,29 +105,48 @@ class Repository(private val db: AppDatabase) {
         val currentList = leaderboardDao.getLeaderboardOnce()
         if (currentList.isEmpty()) {
             val simulatedUsers = listOf(
-                LeaderboardUser(name = "Kazi Anis (English Learner)", points = 680, streak = 12, isMe = false),
-                LeaderboardUser(name = "Fatima Al-Harbi (Arabic Learner)", points = 550, streak = 8, isMe = false),
-                LeaderboardUser(name = "John Doe (Bengali Learner)", points = 410, streak = 4, isMe = false),
-                LeaderboardUser(name = "You (Me)", points = 100, streak = 0, isMe = true),
-                LeaderboardUser(name = "Rahim Mia (Arabic Learner)", points = 320, streak = 2, isMe = false),
-                LeaderboardUser(name = "Aisha Khan (English Learner)", points = 210, streak = 1, isMe = false)
+                LeaderboardUser(id = 1, name = "Kazi Anis (Dhaka, BD) 🇧🇩", points = 1250, streak = 18, isMe = false),
+                LeaderboardUser(id = 2, name = "Fatima Al-Harbi (Riyadh, SA) 🇸🇦", points = 1120, streak = 15, isMe = false),
+                LeaderboardUser(id = 3, name = "Zayn Malik (London, UK) 🇬🇧", points = 940, streak = 11, isMe = false),
+                LeaderboardUser(id = 4, name = "Yasmin Begum (Sylhet, BD) 🇧🇩", points = 830, streak = 9, isMe = false),
+                LeaderboardUser(id = 5, name = "Sajid Afridi (Karachi, PK) 🇵🇰", points = 720, streak = 7, isMe = false),
+                LeaderboardUser(id = 6, name = "You (Me)", points = 100, streak = 0, isMe = true),
+                LeaderboardUser(id = 7, name = "Sarah Jenkins (New York, US) 🇺🇸", points = 640, streak = 6, isMe = false),
+                LeaderboardUser(id = 8, name = "Omar Farooq (Cairo, EG) 🇪🇬", points = 510, streak = 5, isMe = false),
+                LeaderboardUser(id = 9, name = "Farid Uddin (Chittagong, BD) 🇧🇩", points = 410, streak = 4, isMe = false),
+                LeaderboardUser(id = 10, name = "Amina Shah (London, UK) 🇬🇧", points = 320, streak = 3, isMe = false),
+                LeaderboardUser(id = 11, name = "Rafi Al-Hasan (Rajshahi, BD) 🇧🇩", points = 230, streak = 2, isMe = false),
+                LeaderboardUser(id = 12, name = "Aisha Khan (Kuala Lumpur, MY) 🇲🇾", points = 150, streak = 1, isMe = false)
             )
             leaderboardDao.insertUsers(simulatedUsers)
         }
     }
 
+    suspend fun getLeaderboardOnce(): List<LeaderboardUser> {
+        return leaderboardDao.getLeaderboardOnce()
+    }
+
+    suspend fun insertUser(user: LeaderboardUser) {
+        leaderboardDao.insertUser(user)
+    }
+
+    suspend fun updateMyLeaderboardName(newName: String) {
+        val currentLeaderboard = leaderboardDao.getLeaderboardOnce()
+        val me = currentLeaderboard.find { it.isMe }
+        if (me != null) {
+            leaderboardDao.insertUser(me.copy(name = newName))
+        } else {
+            leaderboardDao.insertUser(LeaderboardUser(name = newName, points = 100, streak = 0, isMe = true))
+        }
+    }
+
     private suspend fun updateMyLeaderboardScore(points: Int, streak: Int) {
         val currentLeaderboard = leaderboardDao.getLeaderboardOnce()
-        val updated = currentLeaderboard.map {
-            if (it.isMe) {
-                it.copy(points = points, streak = streak)
-            } else {
-                it
-            }
-        }
-        if (updated.isNotEmpty()) {
-            leaderboardDao.clearLeaderboard()
-            leaderboardDao.insertUsers(updated)
+        val me = currentLeaderboard.find { it.isMe }
+        if (me != null) {
+            leaderboardDao.insertUser(me.copy(points = points, streak = streak))
+        } else {
+            leaderboardDao.insertUser(LeaderboardUser(name = "You (Me)", points = points, streak = streak, isMe = true))
         }
     }
 

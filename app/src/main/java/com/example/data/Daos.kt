@@ -56,6 +56,9 @@ interface LeaderboardDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsers(users: List<LeaderboardUser>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: LeaderboardUser)
+
     @Query("DELETE FROM leaderboard_user")
     suspend fun clearLeaderboard()
 }

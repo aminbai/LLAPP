@@ -36,12 +36,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             initialValue = emptyList()
         )
 
-    val leaderboard: StateFlow<List<LeaderboardUser>> = repository.leaderboardFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    private val _leaderboard = MutableStateFlow<List<LeaderboardUser>>(emptyList())
+    val leaderboard: StateFlow<List<LeaderboardUser>> = _leaderboard.asStateFlow()
 
     val chatHistory: StateFlow<List<ChatMessage>> = repository.chatHistoryFlow
         .stateIn(
@@ -116,6 +112,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             repository.getOrCreateProfile()
             repository.setupLeaderboardIfEmpty()
+
+            // Collect database flow to initialize and merge user (Me) changes into our real-time in-memory state
+            repository.leaderboardFlow.collect { dbUsers ->
+                val currentInMem = _leaderboard.value
+                if (currentInMem.isEmpty()) {
+                    _leaderboard.value = dbUsers
+                } else {
+                    // Update only "Me" from the DB, keep peer simulated updates
+                    val updatedList = currentInMem.map { inMemUser ->
+                        if (inMemUser.isMe) {
+                            dbUsers.find { it.isMe } ?: inMemUser
+                        } else {
+                            inMemUser
+                        }
+                    }
+                    _leaderboard.value = updatedList
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            // Delay slightly to wait for DB instantiation before starting simulation loop
+            kotlinx.coroutines.delay(2000)
+            startRealtimeLeaderboardSimulation()
         }
 
         // Initialize TTS safely inside constructor
@@ -555,5 +575,195 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
     fun triggerToast(msg: String) {
         _notificationToast.value = msg
+    }
+
+    // --- Quranic Word Challenge States and Logic ---
+    val quranWords: List<QuranicWord> = QuranicWordsProvider.getQuranicWords()
+    
+    val quranCurrentIndex = MutableStateFlow(0)
+    val quranSelectedOption = MutableStateFlow<Int?>(null)
+    val quranIsAnswered = MutableStateFlow(false)
+    val quranStreak = MutableStateFlow(0)
+    val quranQuizOptions = MutableStateFlow<List<String>>(emptyList())
+    val quranChallengeHistory = MutableStateFlow<Set<Int>>(emptySet())
+    val quranSearchQuery = MutableStateFlow("")
+
+    init {
+        initQuranChallengeQuestion()
+    }
+
+    fun initQuranChallengeQuestion() {
+        quranSelectedOption.value = null
+        quranIsAnswered.value = false
+        val total = quranWords.size
+        if (total == 0) return
+
+        val currentIndex = quranCurrentIndex.value
+        val correctWord = quranWords.getOrNull(currentIndex % total) ?: quranWords[0]
+        val correctMeaning = correctWord.meaning
+
+        // Select 3 other random distinct meanings
+        val otherMeanings = quranWords
+            .filter { it.meaning != correctMeaning }
+            .map { it.meaning }
+            .distinct()
+            .shuffled()
+            .take(3)
+
+        // Merge and shuffle
+        val consolidated = (otherMeanings + correctMeaning).shuffled()
+        quranQuizOptions.value = consolidated
+    }
+
+    fun submitQuranChallengeAnswer(optionIndex: Int) {
+        if (quranIsAnswered.value) return
+        
+        val total = quranWords.size
+        if (total == 0) return
+
+        val currentIndex = quranCurrentIndex.value
+        val correctWord = quranWords.getOrNull(currentIndex % total) ?: quranWords[0]
+        val selectedMeaning = quranQuizOptions.value.getOrNull(optionIndex) ?: ""
+
+        val isCorrect = selectedMeaning == correctWord.meaning
+        quranSelectedOption.value = optionIndex
+        quranIsAnswered.value = true
+
+        if (isCorrect) {
+            val newStreak = quranStreak.value + 1
+            quranStreak.value = newStreak
+            _notificationToast.value = "Correct! (সঠিক উত্তর!) 🎉 +15 XP! Streak: $newStreak"
+            
+            // Add to completed/mastered history
+            val history = quranChallengeHistory.value.toMutableSet()
+            history.add(correctWord.id)
+            quranChallengeHistory.value = history
+
+            viewModelScope.launch {
+                repository.awardXp(15)
+                // Add streak count dynamically if multiples of 5
+                if (newStreak % 5 == 0) {
+                    repository.awardXp(30)
+                    _notificationToast.value = "🔥 Super Quran Streak $newStreak! Bonus +30 XP!"
+                }
+            }
+        } else {
+            quranStreak.value = 0
+            _notificationToast.value = "Incorrect. (ভুল হয়েছে) 💡 Hint: ${correctWord.hint}"
+        }
+    }
+
+    fun nextQuranWord() {
+        val total = quranWords.size
+        if (total > 0) {
+            quranCurrentIndex.value = (quranCurrentIndex.value + 1) % total
+            initQuranChallengeQuestion()
+        }
+    }
+
+    fun previousQuranWord() {
+        val total = quranWords.size
+        if (total > 0) {
+            val prev = quranCurrentIndex.value - 1
+            quranCurrentIndex.value = if (prev < 0) total - 1 else prev
+            initQuranChallengeQuestion()
+        }
+    }
+
+    fun jumpToQuranWord(index: Int) {
+        val total = quranWords.size
+        if (total > 0 && index in 0 until total) {
+            quranCurrentIndex.value = index
+            initQuranChallengeQuestion()
+        }
+    }
+
+    // --- Realtime Multi-User Leaderboard Simulation Engine ---
+    val leaderboardLiveFeeds = MutableStateFlow<List<String>>(
+        listOf(
+            "Tariq Al-Masri (Riyadh) selected Arabic Intermediate track! 🇸🇦",
+            "Kazi Anis completed Quiz: Vocab matching! 🇧🇩 (+20 XP)",
+            "Asha Khan just started a 3-day Quranic streak! 🇲🇾"
+        )
+    )
+
+    private val onlineUserCount = MutableStateFlow(12840)
+    val liveOnlineUserCount: StateFlow<Int> = onlineUserCount.asStateFlow()
+
+    fun startRealtimeLeaderboardSimulation() {
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(2000)
+            while (true) {
+                // Update online user count slightly to give an active feel
+                val randCountChange = (-15..20).random()
+                onlineUserCount.value = (onlineUserCount.value + randCountChange).coerceIn(12500, 13200)
+
+                // Get current in-memory leaderboard users
+                val currentInMem = _leaderboard.value
+                if (currentInMem.isNotEmpty()) {
+                    // Pick a random user that is not Me
+                    val nonMeUsers = currentInMem.filter { !it.isMe }
+                    if (nonMeUsers.isNotEmpty()) {
+                        val targetUser = nonMeUsers.random()
+                        
+                        // Increase points slightly (simulating active practice)
+                        val pointsInc = listOf(10, 15, 20, 30).random()
+                        val updatedUser = targetUser.copy(
+                            points = targetUser.points + pointsInc,
+                            streak = if ((0..10).random() < 3) targetUser.streak + 1 else targetUser.streak
+                        )
+                        
+                        // Update the in-memory list ONLY (avoiding heavy Room DB write lockouts)
+                        _leaderboard.value = currentInMem.map {
+                            if (it.id == updatedUser.id) updatedUser else it
+                        }
+
+                        // Generate a rich feed message
+                        val activities = listOf(
+                            "completed English Vocabulary Level ${listOf(1, 2, 3).random()} 🎓",
+                            "just earned a perfect quiz score! 🌟",
+                            "submitted a Quran translation pair successfully 🕌",
+                            "kept up active study via Daily Review ⚡",
+                            "successfully unlocked a new Expert badge 🏆",
+                            "completed a Quranic root word quiz successfully 💡",
+                            "practiced speaking with Phonetic Fallback engine 🗣️"
+                        )
+                        val sanitizedName = targetUser.name.substringBefore(" (")
+                        
+                        val flagString = when {
+                            targetUser.name.contains("🇧🇩") -> "🇧🇩"
+                            targetUser.name.contains("🇸🇦") -> "🇸🇦"
+                            targetUser.name.contains("🇬🇧") -> "🇬🇧"
+                            targetUser.name.contains("🇵🇰") -> "🇵🇰"
+                            targetUser.name.contains("🇺🇸") -> "🇺🇸"
+                            targetUser.name.contains("🇲🇾") -> "🇲🇾"
+                            targetUser.name.contains("🇪🇬") -> "🇪🇬"
+                            else -> "⚡"
+                        }
+                        
+                        val notificationMsg = "$sanitizedName $flagString ${activities.random()} (+$pointsInc XP)"
+                        
+                        // Update live feed list
+                        val currentFeeds = leaderboardLiveFeeds.value.toMutableList()
+                        currentFeeds.add(0, notificationMsg)
+                        if (currentFeeds.size > 8) {
+                            currentFeeds.removeAt(currentFeeds.size - 1)
+                        }
+                        leaderboardLiveFeeds.value = currentFeeds
+                    }
+                }
+                
+                // Add secondary random traffic loop: delay random seconds (4 to 8 sec)
+                val delaySeconds = (4..8).random() * 1000L
+                kotlinx.coroutines.delay(delaySeconds)
+            }
+        }
+    }
+
+    fun updateMyLeaderboardName(newName: String) {
+        viewModelScope.launch {
+            repository.updateMyLeaderboardName(newName)
+            _notificationToast.value = "Username changed to \"$newName\"! (ব্যবহারকারীর নাম পরিবর্তন করা হয়েছে!) ✅"
+        }
     }
 }

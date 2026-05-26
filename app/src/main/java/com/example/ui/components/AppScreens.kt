@@ -5,6 +5,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,9 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
@@ -317,6 +320,119 @@ fun DashboardScreen(viewModel: MainViewModel) {
             }
         }
 
+        // --- PREMIUM QURANIC ARABIC GRAMMAR ACADEMY CARD ---
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.navigateTo("GRAMMAR")
+                        viewModel.triggerToast("📖 কুরআনিক আরবি ব্যাকরণ এবং শব্দ রূপান্তর একাডেমিতে আপনাকে স্বাগতম!")
+                    }
+                    .testTag("quranic_grammar_academy_card"),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.2.dp, Brush.horizontalGradient(listOf(Color(0xFF00FFCC), Color(0xFF3B82F6)))),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF00FFCC).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Book Menu",
+                                    tint = Color(0xFF00FFCC),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Text(
+                                text = "আরবি ব্যাকরণ ও শব্দ রূপান্তর",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFE11D48))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "কুরআন ল্যাব",
+                                fontSize = 10.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "📖 কুরআনিক আরবি ব্যাকরণ একাডেমি",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "ক্রিয়াকালের ১৪ প্রকার রূপান্তর (সরফ), ৩৪ ও ৪৮ প্রকার রূপান্তর এবং শব্দের জের, জবর ও পেশের কারণে অর্থ পরিবর্তনের সম্পূর্ণ রহস্য এবং সহজে শব্দ বিশ্লেষণ ল্যাব!",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(imageVector = Icons.Default.Star, contentDescription = "", tint = Color(0xFFFFCC00), modifier = Modifier.size(16.dp))
+                            Text("৪টি বিশেষ অধ্যায়", fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "শিখতে প্রবেশ করুন",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00FFCC)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "Enter Academy",
+                                tint = Color(0xFF00FFCC),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Active target language, level, and goals progress indicators
         item {
             Card(
@@ -504,32 +620,37 @@ fun GamesScreen(viewModel: MainViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(
                     "LESSONS" to "🎓 Lessons (" + Translator.get("games", currentLang).split(" ")[0] + ")",
+                    "QURAN_CHALLENGE" to "🕌 কুরআনিক শব্দ (Quranic Challenge)",
                     "FLASHCARDS" to "🎴 Flashcards",
                     "DICTIONARY" to "📚 Dictionary"
                 ).forEach { (tabCode, label) ->
                     val isSelected = selectedSubTab == tabCode
                     Button(
                         onClick = { selectedSubTab = tabCode },
-                        modifier = Modifier.weight(1f).height(40.dp),
+                        modifier = Modifier.height(40.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        contentPadding = PaddingValues(0.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
-                        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             // Render selected Sub-Section
             when (selectedSubTab) {
+                "QURAN_CHALLENGE" -> {
+                    QuranChallengeGamePlayArea(viewModel = viewModel)
+                }
                 "LESSONS" -> {
                     val targetsList = StaticLessons.lessonsList.filter { it.targetLanguage == profile.targetLanguage }
 
@@ -1391,107 +1512,348 @@ fun PronounceGameLayout(viewModel: MainViewModel, lesson: Lesson) {
 @Composable
 fun LeaderboardScreen(viewModel: MainViewModel) {
     val leaderboardValues by viewModel.leaderboard.collectAsState()
+    val liveFeeds by viewModel.leaderboardLiveFeeds.collectAsState()
+    val activeCount by viewModel.liveOnlineUserCount.collectAsState()
     val profile by viewModel.userProfile.collectAsState()
     val currentLang = profile.nativeLanguage
 
-    Column(
+    val sortedList = remember(leaderboardValues) {
+        leaderboardValues.sortedByDescending { it.points }
+    }
+
+    var editNickname by remember { mutableStateOf("") }
+    var isEditingName by remember { mutableStateOf(false) }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = Translator.get("leaderboard", currentLang),
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-
-        Text(
-            text = Translator.get("practice", currentLang),
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Display ranking podium banner for Top 3
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            val sortedList = leaderboardValues.sortedByDescending { it.points }
-
-            // 2nd Place
-            sortedList.getOrNull(1)?.let { u2 ->
-                PodiumColumn(u = u2, rank = 2, height = 80.dp)
-            }
-
-            // 1st Place
-            sortedList.getOrNull(0)?.let { u1 ->
-                PodiumColumn(u = u1, rank = 1, height = 110.dp)
-            }
-
-            // 3rd Place
-            sortedList.getOrNull(2)?.let { u3 ->
-                PodiumColumn(u = u3, rank = 3, height = 65.dp)
+        // Applet Banner & Screen Title
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = if (currentLang == "BN") "রিয়েলটাইম লিডারবোর্ড 🏆" else "Real-time Leaderboard 🏆",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = if (currentLang == "BN") "সারা বিশ্বের শিক্ষার্থীদের সাথে লাইভ প্রতিযোগিতা করুন" else "Compete live with global active learners",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Ranking list below podium
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxSize().testTag("leaderboard_list_scroll")
-        ) {
-            items(leaderboardValues) { rankUser ->
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (rankUser.isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    ),
-                    border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.02f)))),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+        // Live Server Status Indicator (Simulated Multiplayer Connection Status)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF0F2C2C)
+                ),
+                border = BorderStroke(1.dp, Color(0xFF00FFCC).copy(alpha = 0.25f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            modifier = Modifier.size(10.dp),
+                            shape = CircleShape,
+                            color = Color(0xFF00FFCC)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = if (currentLang == "BN") "লাইভ মাল্টিপ্লেয়ার সার্ভার ১" else "Live Multiplayer Node-1",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF00FFCC)
+                        )
+                    }
+                    Text(
+                        text = if (currentLang == "BN") "$activeCount জন সক্রিয় 🟢" else "$activeCount Active Users 🟢",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // Personalized Profile & Name Customizer
+        item {
+            val myInstance = leaderboardValues.find { it.isMe }
+            val currentMyName = myInstance?.name ?: "You (Me)"
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = if (currentLang == "BN") "👤 আপনার প্রতিযোগী প্রোফাইল:" else "👤 Your Competitor Profile:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (!isEditingName) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = currentMyName,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "আমার পয়েন্ট: ${myInstance?.points ?: 0} XP • স্ট্রাইক: ${myInstance?.streak ?: 0} 🔥",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    editNickname = currentMyName
+                                    isEditingName = true
+                                },
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.height(34.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                            ) {
+                                Text(if (currentLang == "BN") "নাম পরিবর্তন" else "Edit Name", fontSize = 11.sp)
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = editNickname,
+                                onValueChange = { editNickname = it },
+                                label = { Text(if (currentLang == "BN") "আপনার ডাকনাম লিখুন" else "Enter your nickname") },
+                                textStyle = TextStyle(fontSize = 13.sp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                            Button(
+                                onClick = {
+                                    if (editNickname.isNotBlank()) {
+                                        viewModel.updateMyLeaderboardName(editNickname.trim())
+                                        isEditingName = false
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.height(50.dp)
+                            ) {
+                                Text("Save", fontSize = 12.sp)
+                            }
+                            OutlinedButton(
+                                onClick = { isEditingName = false },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.height(50.dp)
+                            ) {
+                                Text("X", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Live Practice Feed ticker panel (Simulated Dynamic Traffic)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Live Sync",
+                            tint = Color.Yellow,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (currentLang == "BN") "লাইভ ফিড (পিয়ার একটিভিটি)" else "LIVE PIER ACTIVITY TICKER:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Yellow,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Box(
                         modifier = Modifier
-                            .padding(12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxWidth()
+                            .height(65.dp)
+                            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
+                    ) {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(liveFeeds.take(2)) { msg ->
+                                Text(
+                                    text = "• $msg",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    overflow = TextOverflow.Ellipsis,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Podium for Top 3 Ranking
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // 2nd Place
+                sortedList.getOrNull(1)?.let { u2 ->
+                    PodiumColumn(u = u2, rank = 2, height = 80.dp)
+                }
+
+                // 1st Place
+                sortedList.getOrNull(0)?.let { u1 ->
+                    PodiumColumn(u = u1, rank = 1, height = 110.dp)
+                }
+
+                // 3rd Place
+                sortedList.getOrNull(2)?.let { u3 ->
+                    PodiumColumn(u = u3, rank = 3, height = 65.dp)
+                }
+            }
+        }
+
+        // Full Interactive Ranking List
+        item {
+            Text(
+                text = if (currentLang == "BN") "🏆 প্রতিযোগিতামূলক র‌্যাঙ্কিং তালিকা:" else "🏆 Competitive Ranking Board:",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+            )
+        }
+
+        itemsIndexed(sortedList) { idx, rankUser ->
+            val rankPos = idx + 1
+            val isUserMe = rankUser.isMe
+
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUserMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                border = BorderStroke(
+                    width = if (isUserMe) 2.dp else 1.dp,
+                    color = if (isUserMe) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Position Number Badges
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when (rankPos) {
+                                    1 -> Color(0xFFFFD700)
+                                    2 -> Color(0xFFC0C0C0)
+                                    3 -> Color(0xFFCD7F32)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (rankUser.isMe) "★" else "•",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.width(24.dp)
+                            text = "#$rankPos",
+                            color = if (rankPos <= 3) Color.Black else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 11.sp
                         )
+                    }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                        Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = rankUser.name,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                color = if (isUserMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = "Streak count: ${rankUser.streak} ⚡",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                            if (isUserMe) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                    Text("YOU", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                }
+                            }
                         }
-
                         Text(
-                            text = "${rankUser.points} XP",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            text = if (currentLang == "BN") "টানা চর্চা: ${rankUser.streak} দিন ⚡" else "Streak count: ${rankUser.streak} ⚡",
+                            fontSize = 11.sp,
+                            color = if (isUserMe) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
+
+                    Text(
+                        text = "${rankUser.points} XP",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp,
+                        color = if (isUserMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -2186,6 +2548,507 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         Text("Check if update matches server. Release version: v1.4.2", fontSize = 11.sp)
                     }
                     Icon(imageVector = Icons.Default.Refresh, contentDescription = "Check update", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuranChallengeGamePlayArea(viewModel: MainViewModel) {
+    val currentIndex by viewModel.quranCurrentIndex.collectAsState()
+    val selectedOption by viewModel.quranSelectedOption.collectAsState()
+    val isAnswered by viewModel.quranIsAnswered.collectAsState()
+    val streak by viewModel.quranStreak.collectAsState()
+    val options by viewModel.quranQuizOptions.collectAsState()
+    val history by viewModel.quranChallengeHistory.collectAsState()
+    val searchQuery by viewModel.quranSearchQuery.collectAsState()
+
+    val wordList = viewModel.quranWords
+    val totalWords = wordList.size
+    val currentWord = wordList.getOrNull(currentIndex % totalWords) ?: wordList[0]
+
+    var showHints by remember { mutableStateOf(false) }
+
+    // Filtered list of 300 words for the search browser
+    val filteredList = remember(searchQuery) {
+        if (searchQuery.isBlank()) {
+            wordList
+        } else {
+            wordList.filter {
+                it.word.contains(searchQuery, ignoreCase = true) ||
+                it.meaning.contains(searchQuery, ignoreCase = true) ||
+                it.root.contains(searchQuery, ignoreCase = true) ||
+                it.pronunciation.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)
+    ) {
+        // Game Header Stat Row
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.05f)))),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "শব্দ চ্যালেঞ্জ: ${currentIndex + 1} / $totalWords",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { (currentIndex + 1).toFloat() / totalWords.toFloat() },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                            color = Color(0xFF00FFCC),
+                            trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "মোট আয়ত্ত করেছেন: ${history.size} টি শব্দ",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Streak Fire badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFFF9900), Color(0xFFFF3300))))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Star, contentDescription = "Streak", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "স্ট্রাইক: $streak 🔥",
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Main Puzzle Area Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("quran_challenge_box"),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.2f), Color.White.copy(alpha = 0.02f)))),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header Badge
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        shape = CircleShape,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Text(
+                            text = currentWord.partOfSpeech,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Quran Giant Term text
+                    androidx.compose.foundation.text.selection.SelectionContainer {
+                        Text(
+                            text = currentWord.word,
+                            fontSize = 38.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "উচ্চারণ: ${currentWord.pronunciation}",
+                        fontSize = 15.sp,
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Example Quranic Verse inside styled quote banner
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "📖 উদাহরণ আয়াত ও প্রয়োগ:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = currentWord.exampleVerse,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "অনুবাদ: ${currentWord.exampleTranslation}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Hint expandable bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showHints = !showHints }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = if (showHints) Icons.Default.KeyboardArrowUp else Icons.Default.Info, contentDescription = "", tint = Color.Yellow, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (showHints) "ইঙ্গিত ও ইশারা লুকান" else "💡 ইশারা ও ইঙ্গিত (Show Clues)",
+                            fontSize = 12.sp,
+                            color = Color.Yellow,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (showHints) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.Yellow.copy(alpha = 0.08f)),
+                            border = BorderStroke(1.dp, Color.Yellow.copy(alpha = 0.2f)),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        ) {
+                            Text(
+                                text = "ইঙ্গিত: ${currentWord.hint}",
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Interactive Options
+        item {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                options.forEachIndexed { idx, optionLabel ->
+                    val isThisSelected = selectedOption == idx
+                    val correctLabel = currentWord.meaning
+                    val optionIsCorrect = optionLabel == correctLabel
+
+                    val cardColor = when {
+                        isAnswered && optionIsCorrect -> Color(0xFF2E7D32) // bright green for correct answer
+                        isAnswered && isThisSelected && !optionIsCorrect -> Color(0xFFC62828) // crimson red for chosen wrong answer
+                        isThisSelected -> MaterialTheme.colorScheme.primaryContainer
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    }
+
+                    val contentColor = when {
+                        isAnswered && (optionIsCorrect || (isThisSelected && !optionIsCorrect)) -> Color.White
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+
+                    Card(
+                        onClick = { viewModel.submitQuranChallengeAnswer(idx) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("quran_option_$idx"),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, if (isThisSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.1f)),
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Circular Index indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isThisSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = (idx + 1).toString(),
+                                    fontSize = 11.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = optionLabel,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = contentColor,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            if (isAnswered && optionIsCorrect) {
+                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Correct", tint = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Post Answer Explanations
+        if (isAnswered) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFF00FFCC).copy(alpha = 0.3f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "🧐 তফসির ও ব্যাকরণ ব্যাখ্যা (Quran Grammar):",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            IconButton(onClick = { viewModel.speakText(currentWord.word) }) {
+                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Hear vocal", tint = Color.Yellow)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "ধাতু বা মূল রুপ (Root): ${currentWord.root}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "প্রয়োগ: ${currentWord.usageContext}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = { viewModel.nextQuranWord() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("পরবর্তী শব্দে যান ➔", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Navigation Controller bar
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { viewModel.previousQuranWord() },
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Previous")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("পূর্ববর্তী শব্দ", fontSize = 12.sp)
+                }
+
+                Button(
+                    onClick = { viewModel.initQuranChallengeQuestion() },
+                    modifier = Modifier.weight(0.8f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                ) {
+                    Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reset", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("রিসেট", fontSize = 12.sp)
+                }
+
+                Button(
+                    onClick = { viewModel.nextQuranWord() },
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) {
+                    Text("পরবর্তী শব্দ", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Next")
+                }
+            }
+        }
+
+        // Giant search lookup area underneath
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text(
+                    text = "🔎 ৩০০টি শব্দের ডিরেক্টরি সূচী (Searchable Glossary)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.quranSearchQuery.value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("অর্থ, আরবি শব্দ বা মূল রুপ খুঁজুন...") },
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search") },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.quranSearchQuery.value = "" }) {
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "খোঁজ মিলেছে: ${filteredList.size} টি শব্দের",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // List of filtered lookup vocab cards
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filteredList.take(15).forEach { item ->
+                        val isCurrentActive = item.id == currentWord.id
+                        Card(
+                            onClick = { viewModel.jumpToQuranWord(item.id - 1) },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isCurrentActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.05f)
+                            ),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isCurrentActive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = item.id.toString(),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.word,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${item.pronunciation} • ${item.partOfSpeech}",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = item.meaning,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00FFCC)
+                                    )
+                                    Text(
+                                        text = "Root: ${item.root}",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (filteredList.size > 15) {
+                        Text(
+                            text = "...এবং আরও ${filteredList.size - 15}টি শব্দ রয়েছে। বিস্তারিত দেখতে অনুসন্ধান ফিল্টার ব্যবহার করুন।",
+                            fontSize = 12.sp,
+                            fontStyle = FontStyle.Italic,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
         }

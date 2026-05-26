@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
                             "LEADERBOARD" -> LeaderboardScreen(viewModel = mainViewModel)
                             "PLAN" -> PersonalPlanScreen(viewModel = mainViewModel)
                             "SETTINGS" -> SettingsScreen(viewModel = mainViewModel)
+                            "GRAMMAR" -> ArabicGrammarAcademyScreen(viewModel = mainViewModel, onBack = { mainViewModel.navigateTo("HOME") })
                         }
                     }
                 }
