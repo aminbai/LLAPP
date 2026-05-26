@@ -702,63 +702,67 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             kotlinx.coroutines.delay(2000)
             while (true) {
-                // Update online user count slightly to give an active feel
-                val randCountChange = (-15..20).random()
-                onlineUserCount.value = (onlineUserCount.value + randCountChange).coerceIn(12500, 13200)
+                try {
+                    // Update online user count slightly to give an active feel
+                    val randCountChange = (-15..20).random()
+                    onlineUserCount.value = (onlineUserCount.value + randCountChange).coerceIn(12500, 13200)
 
-                // Get current in-memory leaderboard users
-                val currentInMem = _leaderboard.value
-                if (currentInMem.isNotEmpty()) {
-                    // Pick a random user that is not Me
-                    val nonMeUsers = currentInMem.filter { !it.isMe }
-                    if (nonMeUsers.isNotEmpty()) {
-                        val targetUser = nonMeUsers.random()
-                        
-                        // Increase points slightly (simulating active practice)
-                        val pointsInc = listOf(10, 15, 20, 30).random()
-                        val updatedUser = targetUser.copy(
-                            points = targetUser.points + pointsInc,
-                            streak = if ((0..10).random() < 3) targetUser.streak + 1 else targetUser.streak
-                        )
-                        
-                        // Update the in-memory list ONLY (avoiding heavy Room DB write lockouts)
-                        _leaderboard.value = currentInMem.map {
-                            if (it.id == updatedUser.id) updatedUser else it
-                        }
+                    // Get current in-memory leaderboard users
+                    val currentInMem = _leaderboard.value
+                    if (currentInMem.isNotEmpty()) {
+                        // Pick a random user that is not Me
+                        val nonMeUsers = currentInMem.filter { !it.isMe }
+                        if (nonMeUsers.isNotEmpty()) {
+                            val targetUser = nonMeUsers.random()
+                            
+                            // Increase points slightly (simulating active practice)
+                            val pointsInc = listOf(10, 15, 20, 30).random()
+                            val updatedUser = targetUser.copy(
+                                points = targetUser.points + pointsInc,
+                                streak = if ((0..10).random() < 3) targetUser.streak + 1 else targetUser.streak
+                            )
+                            
+                            // Update the in-memory list ONLY (avoiding heavy Room DB write lockouts)
+                            _leaderboard.value = currentInMem.map {
+                                if (it.id == updatedUser.id) updatedUser else it
+                            }
 
-                        // Generate a rich feed message
-                        val activities = listOf(
-                            "completed English Vocabulary Level ${listOf(1, 2, 3).random()} 🎓",
-                            "just earned a perfect quiz score! 🌟",
-                            "submitted a Quran translation pair successfully 🕌",
-                            "kept up active study via Daily Review ⚡",
-                            "successfully unlocked a new Expert badge 🏆",
-                            "completed a Quranic root word quiz successfully 💡",
-                            "practiced speaking with Phonetic Fallback engine 🗣️"
-                        )
-                        val sanitizedName = targetUser.name.substringBefore(" (")
-                        
-                        val flagString = when {
-                            targetUser.name.contains("🇧🇩") -> "🇧🇩"
-                            targetUser.name.contains("🇸🇦") -> "🇸🇦"
-                            targetUser.name.contains("🇬🇧") -> "🇬🇧"
-                            targetUser.name.contains("🇵🇰") -> "🇵🇰"
-                            targetUser.name.contains("🇺🇸") -> "🇺🇸"
-                            targetUser.name.contains("🇲🇾") -> "🇲🇾"
-                            targetUser.name.contains("🇪🇬") -> "🇪🇬"
-                            else -> "⚡"
+                            // Generate a rich feed message
+                            val activities = listOf(
+                                "completed English Vocabulary Level ${listOf(1, 2, 3).random()} 🎓",
+                                "just earned a perfect quiz score! 🌟",
+                                "submitted a Quran translation pair successfully 🕌",
+                                "kept up active study via Daily Review ⚡",
+                                "successfully unlocked a new Expert badge 🏆",
+                                "completed a Quranic root word quiz successfully 💡",
+                                "practiced speaking with Phonetic Fallback engine 🗣️"
+                            )
+                            val sanitizedName = targetUser.name.substringBefore(" (")
+                            
+                            val flagString = when {
+                                targetUser.name.contains("🇧🇩") -> "🇧🇩"
+                                targetUser.name.contains("🇸🇦") -> "🇸🇦"
+                                targetUser.name.contains("🇬🇧") -> "🇬🇧"
+                                targetUser.name.contains("🇵🇰") -> "🇵🇰"
+                                targetUser.name.contains("🇺🇸") -> "🇺🇸"
+                                targetUser.name.contains("🇲🇾") -> "🇲🇾"
+                                targetUser.name.contains("🇪🇬") -> "🇪🇬"
+                                else -> "⚡"
+                            }
+                            
+                            val notificationMsg = "$sanitizedName $flagString ${activities.random()} (+$pointsInc XP)"
+                            
+                            // Update live feed list
+                            val currentFeeds = leaderboardLiveFeeds.value.toMutableList()
+                            currentFeeds.add(0, notificationMsg)
+                            if (currentFeeds.size > 8) {
+                                currentFeeds.removeAt(currentFeeds.size - 1)
+                            }
+                            leaderboardLiveFeeds.value = currentFeeds
                         }
-                        
-                        val notificationMsg = "$sanitizedName $flagString ${activities.random()} (+$pointsInc XP)"
-                        
-                        // Update live feed list
-                        val currentFeeds = leaderboardLiveFeeds.value.toMutableList()
-                        currentFeeds.add(0, notificationMsg)
-                        if (currentFeeds.size > 8) {
-                            currentFeeds.removeAt(currentFeeds.size - 1)
-                        }
-                        leaderboardLiveFeeds.value = currentFeeds
                     }
+                } catch (t: Throwable) {
+                    t.printStackTrace()
                 }
                 
                 // Add secondary random traffic loop: delay random seconds (4 to 8 sec)
