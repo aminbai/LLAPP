@@ -7,6 +7,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import com.example.network.queryGemini
+import com.example.network.queryGeminiWithHistory
+import com.example.network.Content as GeminiContent
+import com.example.network.Part as GeminiPart
 import com.example.ui.components.RobotState
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -508,18 +511,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
             _robotState.value = RobotState.THINKING
 
+            // Feed the chatbot with last 15 context logs for continuous conversation flow
+            val currentLogs = chatHistory.value.takeLast(15)
+            val historyList = currentLogs.map { msg ->
+                GeminiContent(
+                    parts = listOf(GeminiPart(text = msg.text)),
+                    role = if (msg.isUser) "user" else "model"
+                )
+            }
+
             val systemInstruction = """
-                You are a friendly, helpful, robotic language assistant tutor representing LingoPlay.
-                You help players learn Bengali, English, and Arabic.
-                Reply in Bengali if requested, or language match the user (use English or Arabic as appropriate).
-                Be very polite, engaging, and encourage daily streak practicing of interactive language games!
+                You are Mitra (মিত্র), a friendly, highly intelligent, and helpful robotic AI language assistant tutor representing LingoPlay.
+                Your purpose is to help the student learn English (ইংরেজি), Arabic (আরবি), and Bengali (বাংলা) in full detail.
+                
+                Guidelines for your responses:
+                1. Continuous Dialogue ("লাগাতার"): Keep the conversation going naturally. End with a polite, relevant question to prompt the student.
+                2. Real-time Corrections: If the student made any grammatical, vocabulary, or spelling mistakes in their message, point it out gently at the very beginning of your response and provide the bolded correct sentence.
+                3. Translations: If you reply in English or Arabic, ALWAYS append a helpful Bengali translation or phonetic pronunciation helper in parentheses (...) below it, so they can learn thoroughly.
+                4. Tone: Always be warm, supportive, motivating, encouraging them to keep up their daily streak and increase their points.
             """.trimIndent()
 
-            val aiResponse = queryGemini(userMessage, systemInstruction)
+            val aiResponse = queryGeminiWithHistory(historyList, systemInstruction)
 
             _robotState.value = RobotState.TALKING
             // Save AI message to database
             repository.saveMessage(aiResponse, isUser = false)
+            
+            // Speak the response using the TTS engine
+            speakText(aiResponse)
             _robotState.value = RobotState.IDLE
         }
     }

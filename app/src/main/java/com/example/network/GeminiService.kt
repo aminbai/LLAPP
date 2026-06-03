@@ -84,6 +84,26 @@ suspend fun queryGemini(prompt: String, sysInstruction: String? = null): String 
     }
 }
 
+suspend fun queryGeminiWithHistory(history: List<Content>, sysInstruction: String? = null): String {
+    val apiKey = BuildConfig.GEMINI_API_KEY
+    if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY" || apiKey == "null") {
+        val lastPrompt = history.lastOrNull()?.parts?.firstOrNull()?.text ?: ""
+        return "Virtual Assistant Simulation Mode:\n(To activate the live AI chatbot, please configure your GEMINI_API_KEY under the Secrets panel in AI Studio)\n\n" +
+                getOfflineBotResponse(lastPrompt)
+    }
+
+    return try {
+        val systemContent = sysInstruction?.let { Content(parts = listOf(Part(text = it))) }
+        val request = GenerateContentRequest(contents = history, systemInstruction = systemContent)
+
+        val response = RetrofitClient.apiService.generateContent(apiKey, request)
+        response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "No response from AI Assistant."
+    } catch (e: Exception) {
+        val lastPrompt = history.lastOrNull()?.parts?.firstOrNull()?.text ?: ""
+        "Error contacting AI model: ${e.localizedMessage ?: "Unknown network error."}\n\nFalling back to intelligent local assistant:\n${getOfflineBotResponse(lastPrompt)}"
+    }
+}
+
 private fun getOfflineBotResponse(prompt: String): String {
     val p = prompt.lowercase()
     return when {
