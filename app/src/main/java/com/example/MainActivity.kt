@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.example.ui.MainViewModel
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -23,6 +26,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Fullscreen mode: automatically hide system bars (status bars and navigation bars).
+        // Using transient swipe behavior means system bars will auto-hide after a short pause if shown.
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+
         val mainViewModel = androidx.lifecycle.ViewModelProvider(this)[MainViewModel::class.java]
         setContent {
             val profile by mainViewModel.userProfile.collectAsState()
@@ -45,7 +56,9 @@ class MainActivity : ComponentActivity() {
                     containerColor = Color.Transparent,
                     bottomBar = {
                         NavigationBar(
-                            modifier = Modifier.height(84.dp),
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .height(84.dp),
                             containerColor = Color(0xFF0F172A).copy(alpha = 0.5f)
                         ) {
                             val curLang = profile.nativeLanguage
