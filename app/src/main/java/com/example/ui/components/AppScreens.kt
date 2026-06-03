@@ -2332,8 +2332,44 @@ fun ChatbotScreen(viewModel: MainViewModel) {
     val practiceHistory by viewModel.practiceDialogueHistory.collectAsState()
 
     var selectedScenarioId by remember { mutableStateOf("cafe") }
+    var userText by remember { mutableStateOf("") }
     var practiceUserReply by remember { mutableStateOf("") }
     var showRobotTipDialog by remember { mutableStateOf(false) }
+    var isChatVoiceInput by remember { mutableStateOf(true) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val speechLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+            val results = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = results?.firstOrNull() ?: ""
+            if (spokenText.isNotBlank()) {
+                if (isChatVoiceInput) {
+                    userText = spokenText
+                } else {
+                    practiceUserReply = spokenText
+                }
+            }
+        }
+    }
+
+    val launchSpeechIntent = { forChat: Boolean ->
+        isChatVoiceInput = forChat
+        try {
+            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                val targetL = profile.targetLanguage
+                val speechLangCode = if (targetL == "AR") "ar-SA" else if (targetL == "EN") "en-US" else "bn-BD"
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, speechLangCode)
+                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "মিত্র রোবটের সাথে কথা বলুন... (Talk to Mitra...)")
+            }
+            speechLauncher.launch(intent)
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "আপনার ডিভাইসে ভয়েস ইনপুট সমর্থিত নয় (Voice input is not supported)", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val scenarios = remember {
         listOf(
@@ -2640,7 +2676,6 @@ fun ChatbotScreen(viewModel: MainViewModel) {
             Spacer(modifier = Modifier.height(12.dp))
 
             // Chat Conversation Bubble scroller
-            var userText by remember { mutableStateOf("") }
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -2679,10 +2714,24 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                IconButton(
+                    onClick = { launchSpeechIntent(true) },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Face,
+                        contentDescription = "মিত্রকে মুখে বলুন (Speak with Mitra)",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 OutlinedTextField(
                     value = userText,
                     onValueChange = { userText = it },
-                    label = { Text("মিত্র শিক্ষককে বাংলায় বা অন্য ভাষায় জিজ্ঞাসা করুন...") },
+                    label = { Text("মিত্র শিক্ষককে বাংলায় বা অন্য ভাষায় মুখে বলুন বা লিখুন...") },
                     modifier = Modifier.weight(1f).testTag("chat_input_textfield"),
                     shape = RoundedCornerShape(16.dp),
                     trailingIcon = {
@@ -2828,10 +2877,25 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    IconButton(
+                        onClick = { launchSpeechIntent(false) },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        enabled = !isPracticingLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Face,
+                            contentDescription = "মিত্রকে মুখে বলুন (Speak with Mitra)",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     OutlinedTextField(
                         value = practiceUserReply,
                         onValueChange = { practiceUserReply = it },
-                        placeholder = { Text("মিত্রকে উত্তর দিন (যেমন: Hello barista, I need coffee...)") },
+                        placeholder = { Text("মিত্রকে মুখে বলুন বা উত্তর লিখুন...") },
                         modifier = Modifier
                             .weight(1f)
                             .testTag("practice_reply_input"),

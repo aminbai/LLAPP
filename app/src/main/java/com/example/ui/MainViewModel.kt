@@ -224,13 +224,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         return text
     }
 
+    private fun cleanTextForSpeech(input: String): String {
+        var clean = input.replace("**", "").replace("`", "").replace("*", "")
+        
+        // Remove markdown headers or list items
+        clean = clean.replace("#", "")
+        clean = clean.replace("- ", "")
+        
+        // Remove structural tags to parse text into natural speech paragraphs
+        clean = clean.replace("SCORE:\\s*\\d*\\/?\\d*".toRegex(RegexOption.IGNORE_CASE), "")
+        clean = clean.replace("SCORE:", "", ignoreCase = true)
+        clean = clean.replace("MISTAKES:", "", ignoreCase = true)
+        clean = clean.replace("CORRECTION:", "", ignoreCase = true)
+        clean = clean.replace("EXPLANATION:", "", ignoreCase = true)
+        clean = clean.replace("NEXT_AI_MESSAGE:", "", ignoreCase = true)
+        clean = clean.replace("NEXT_AI_TRANSLATION:", "", ignoreCase = true)
+        
+        // Clean symbols and emoji blocks
+        clean = clean.replace("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+".toRegex(), "")
+        return clean.trim()
+    }
+
     fun speakText(text: String) {
+        val cleanedText = cleanTextForSpeech(text)
+        if (cleanedText.isBlank()) return
+
         try {
             tts?.setSpeechRate(speechRate.value)
             
             // 2. Classify original language target
-            val isArabic = text.any { it in '\u0600'..'\u06FF' }
-            val isBengali = text.any { it in '\u0980'..'\u09FF' }
+            val isArabic = cleanedText.any { it in '\u0600'..'\u06FF' }
+            val isBengali = cleanedText.any { it in '\u0980'..'\u09FF' }
             
             val targetLanguage = if (isArabic) {
                 Locale("ar")
@@ -247,15 +271,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             val textToSpeak: String
             if (!isLanguageSupported && (isArabic || isBengali)) {
                 // Missing language data! Use phonetic translation and read it in Latin US English style
-                textToSpeak = getPhoneticFallback(text)
+                textToSpeak = getPhoneticFallback(cleanedText)
                 tts?.setLanguage(Locale.US)
                 _notificationToast.value = "🔊 Local device missing Bengali/Arabic voice pack. Played phonetic guide: \"$textToSpeak\" (ইংরেজি উচ্চারণ সহায়ক ভয়েস প্লে করা হচ্ছে)"
             } else {
                 // Language is supported - play native vocals
-                textToSpeak = text
+                textToSpeak = cleanedText
                 _notificationToast.value = "🔊 Play audio: \"$textToSpeak\" (ফোনের ভলিউম বাড়িয়ে নিন)"
             }
             
+            _robotState.value = RobotState.TALKING
             tts?.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, "LingoPlaySpeak")
         } catch (e: Throwable) {
             e.printStackTrace()
