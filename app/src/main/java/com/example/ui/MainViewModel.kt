@@ -86,6 +86,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val _robotState = MutableStateFlow(RobotState.IDLE)
     val robotState: StateFlow<RobotState> = _robotState.asStateFlow()
 
+    // --- Conversation Practice States ---
+    private val _practiceScore = MutableStateFlow<Int?>(null)
+    val conversationPracticeScore: StateFlow<Int?> = _practiceScore.asStateFlow()
+
+    private val _practiceFeedback = MutableStateFlow<String?>(null)
+    val conversationPracticeFeedback: StateFlow<String?> = _practiceFeedback.asStateFlow()
+
+    private val _isPracticingLoading = MutableStateFlow(false)
+    val isConversationPracticeLoading: StateFlow<Boolean> = _isPracticingLoading.asStateFlow()
+
     // Sync, Backup, and Notification states
     private val _backupCodeResult = MutableStateFlow<String?>(null)
     val backupCodeResult: StateFlow<String?> = _backupCodeResult.asStateFlow()
@@ -509,6 +519,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             repository.saveMessage(aiResponse, isUser = false)
             _robotState.value = RobotState.IDLE
         }
+    }
+
+    fun evaluateConversationPractice(scenarioTitle: String, promptText: String, userResponse: String) {
+        if (userResponse.isBlank()) return
+        viewModelScope.launch {
+            _isPracticingLoading.value = true
+            _robotState.value = RobotState.THINKING
+            _practiceScore.value = null
+            _practiceFeedback.value = null
+            
+            val sysInstruction = """
+                You are an expert bilingual English/Arabic/Bengali language advisor.
+                The student is practicing a dialogue for the scenario: "$scenarioTitle".
+                The companion said: "$promptText".
+                The student replied in English/Arabic/Bengali with: "$userResponse".
+                
+                Analyze the response. Grade grammar, spelling, natural flavor, and vocabulary.
+                Provide clear feedback. Provide a score from 0 to 100.
+                Format your response EXACTLY like this structure:
+                SCORE: [Write only the numeric score out of 100, e.g. 85]
+                MISTAKES: [List any grammatical errors, pronunciation/spelling flaws, or wrong words in bullet points, or say 'Amazing! No mistakes found.']
+                CORRECTION: [Write the best, natural target sentence correction]
+                EXPLANATION: [A friendly explanation in Bengali about the mistakes and pronunciation/social/grammar nuances]
+            """.trimIndent()
+            
+            val rawResult = queryGemini(userResponse, sysInstruction)
+            _practiceFeedback.value = rawResult
+            
+            // Extract numeric score
+            val scorePattern = "SCORE:\\s*(\\d+)".toRegex(RegexOption.IGNORE_CASE)
+            val scoreVal = scorePattern.find(rawResult)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            _practiceScore.value = scoreVal ?: 80
+            
+            // Award points based on performance
+            val earnedXp = if (scoreVal != null) (scoreVal / 2).coerceIn(10, 50) else 30
+            val profile = repository.userProfileFlow.firstOrNull() ?: userProfile.value
+            repository.updateProfile(profile.copy(points = profile.points + earnedXp))
+            
+            _robotState.value = RobotState.TALKING
+            _notificationToast.value = "অনুশীলন সম্পন্ন! +$earnedXp XP অর্জিত হয়েছে! (Practice completed!)"
+            _robotState.value = RobotState.IDLE
+            _isPracticingLoading.value = false
+        }
+    }
+
+    fun resetConversationPractice() {
+        _practiceScore.value = null
+        _practiceFeedback.value = null
+        _isPracticingLoading.value = false
     }
 
     fun clearChatLogs() {
