@@ -511,14 +511,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
             _robotState.value = RobotState.THINKING
 
-            // Feed the chatbot with last 15 context logs for continuous conversation flow
-            val currentLogs = chatHistory.value.takeLast(15)
-            val historyList = currentLogs.map { msg ->
+            // Feed the chatbot with last context logs for continuous conversation flow
+            // We explicitly build the history and append the current user message to avoid race-condition lags
+            val previousMsgs = chatHistory.value.filter { it.text != userMessage }.takeLast(14)
+            val historyList = previousMsgs.map { msg ->
                 GeminiContent(
                     parts = listOf(GeminiPart(text = msg.text)),
                     role = if (msg.isUser) "user" else "model"
                 )
-            }
+            }.toMutableList()
+
+            // Explicitly append the current user's prompt as the last message
+            historyList.add(
+                GeminiContent(
+                    parts = listOf(GeminiPart(text = userMessage)),
+                    role = "user"
+                )
+            )
 
             val systemInstruction = """
                 You are Mitra (মিত্র), a friendly, highly intelligent, and helpful robotic AI language assistant tutor representing LingoPlay.
