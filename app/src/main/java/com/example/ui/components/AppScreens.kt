@@ -2150,6 +2150,173 @@ fun parseFeedback(feedback: String?): Map<String, String> {
 }
 
 @Composable
+fun TutorFeedbackCard(feedback: String, onSpeakCorrection: (String) -> Unit) {
+    val feedbackParts = remember(feedback) { parseFeedback(feedback) }
+    if (feedbackParts.isEmpty()) return
+
+    val score = feedbackParts["SCORE"]?.trim() ?: ""
+    val mistakes = feedbackParts["MISTAKES"]?.trim() ?: ""
+    val correction = feedbackParts["CORRECTION"]?.trim() ?: ""
+    val explanation = feedbackParts["EXPLANATION"]?.trim() ?: ""
+
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Feedback",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "💡 এআই শিক্ষক মূল্যায়ন রিপোর্ট",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (score.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                when {
+                                    (score.toIntOrNull() ?: 0) >= 85 -> Color(0xFF2E7D32).copy(alpha = 0.15f)
+                                    (score.toIntOrNull() ?: 0) >= 65 -> Color(0xFFEF6C00).copy(alpha = 0.15f)
+                                    else -> Color(0xFFC62828).copy(alpha = 0.15f)
+                                }
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "স্কোর: $score/১০০",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                (score.toIntOrNull() ?: 0) >= 85 -> Color(0xFF2E7D32)
+                                (score.toIntOrNull() ?: 0) >= 65 -> Color(0xFFE65100)
+                                else -> Color(0xFFD84315)
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Mistakes Section
+                if (mistakes.isNotEmpty()) {
+                    Text(
+                        text = "❌ চিহ্নিত ভুলগুলো (Mistakes):",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = mistakes,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Correction Section
+                if (correction.isNotEmpty()) {
+                    Text(
+                        text = "✔️ শুদ্ধ রূপ (Correction):",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2E7D32).copy(alpha = 0.08f))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = correction,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { onSpeakCorrection(correction) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Listen correct phrase",
+                                tint = Color(0xFF2E7D32),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Explanation Section
+                if (explanation.isNotEmpty()) {
+                    Text(
+                        text = "📖 সহজ ভাষায় ব্যাখ্যা (Explanation):",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = explanation,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "👇 ভুল, সংশোধন এবং ব্যাকরণগত ব্যাখ্যা দেখতে ক্লিক করুন।",
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    fontStyle = FontStyle.Italic
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun ChatbotScreen(viewModel: MainViewModel) {
     val rState by viewModel.robotState.collectAsState()
     val chatLogs by viewModel.chatHistory.collectAsState()
@@ -2221,34 +2388,178 @@ fun ChatbotScreen(viewModel: MainViewModel) {
     }
 
     if (showRobotTipDialog) {
+        var helperTab by remember { mutableStateOf("INTRO") } // INTRO, ENGLISH, ARABIC, BENGALI, SPEED
+        val speechRateValue by viewModel.speechRate.collectAsState()
+
         AlertDialog(
             onDismissRequest = { showRobotTipDialog = false },
             confirmButton = {
                 TextButton(onClick = { showRobotTipDialog = false }) {
-                    Text("বুঝেছি (Got it!)", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text("বন্ধ করুন (Close)", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Star, contentDescription = "", tint = Color(0xFFFFCC00))
+                    Icon(imageVector = Icons.Default.Face, contentDescription = "", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("মিত্র রোবটের ইন্টারেক্টিভ গাইড!", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("🤖 মিত্র রোবট লার্নিং হাব", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("🤖 প্রিয় শিক্ষার্থী!  মিত্র রোবটের সাহায্যে ভাষা শিক্ষার স্পেশাল ফিচারসমূহ:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Horizontal scroll sub-tab
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            "INTRO" to "পরিচিতি",
+                            "ENGLISH" to "ইংরেজি",
+                            "ARABIC" to "আরবি",
+                            "BENGALI" to "বাংলা",
+                            "SPEED" to "গতি নিয়ন্ত্রণ"
+                        ).forEach { (tabId, tabTitle) ->
+                            val isSelected = helperTab == tabId
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    .clickable { helperTab = tabId }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = tabTitle,
+                                    fontSize = 11.sp,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                            .padding(vertical = 4.dp)
+                    )
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        Text("🗣️ **লাগাতার কথোপকথন:** মেসেজ পাঠিয়ে দেওয়ার পর এআই শিক্ষক আপনার উত্তর মূল্যায়ন ও অনুবাদ করে ব্যাকরণগত পরামর্শ দেবে।", fontSize = 12.sp)
-                        Text("💬 **রিয়েলটাইম লিসেনিং:** স্পিকার আইকনে ট্যাপ করে প্রতিটি বাক্যের সঠিক উচ্চারণ শুনে নিতে পারেন সহজেই!", fontSize = 12.sp)
+                        when (helperTab) {
+                            "INTRO" -> {
+                                Text("👋 স্বাগতম! আমি মিত্র রোবট, আপনার ব্যক্তিগত এআই ভাষা শিক্ষক।", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "আমার সাথে চ্যাট করার এবং লাগাতার কথা বলার সময় আপনি নিচের সুবিধাগুলো পাবেন:\n\n" +
+                                            "🗣️ **লাগাতার কথোপকথন:** যেকোনো পরিস্থিতিতে কথা বলার পর আমি সাথে সাথে আপনার ভুল খুঁজে দেব এবং সঠিক করার উপায় শিখাবো।\n" +
+                                            "💡 **বিশদ মূল্যায়ন:** আপনার প্রতিটি বাক্যের ব্যাকরণ ও শব্দচয়ন বিশ্লেষণ করে স্কোর (১০০ এর মধ্যে) দেওয়া হবে।\n" +
+                                            "🔊 **সহজ উচ্চারণ গাইড:** প্রতিটি বাক্যের পাশে থাকা স্পিকার আইকনে ক্লিক করে আপনি একদম শুদ্ধ উচ্চারণ শুনে অনুশীলন করতে পারবেন!\n\n" +
+                                            "অনুশীলন করুন এবং লিডারবোর্ডে এগিয়ে যান! আপনার দৈনিক স্ট্রাইক ধরে রাখুন।",
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            "ENGLISH" -> {
+                                Text("🇬🇧 ইংরেজি শিখুন আত্মবিশ্বাসের সাথে!", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "📌 **ভদ্রভাবে অর্ডার বা অনুরোধ ট্রিক:**\n" +
+                                            "ক্যাফে বা দোকানে কখনো \"I want coffee\" বলবেন না। এটি খুব রুড শোনায়। সবসময় বলুন: \n" +
+                                            "💡 *\"I would like a coffee, please.\"* (খুব সুন্দর ও ভদ্র অনুরোধ)\n\n" +
+                                            "📌 **প্রয়োজনীয় ইংরেজি বাক্য:**\n" +
+                                            "• *Could you please help me?* (আপনি কি আমাকে দয়া করে সাহায্য করবেন?)\n" +
+                                            "• *Where is the immigration counter?* (ইমিগ্রেশন কাউন্টার কোথায়?)\n" +
+                                            "• *Have a wonderful day!* (আপনার দিনটি চমৎকার কাটুক!)",
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            "ARABIC" -> {
+                                Text("🇸🇦 আরবি ডায়ালগ এবং সৌজন্যতা ট্রিকস!", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "📌 **সৌজন্য প্রকাশ এবং দরদাম:**\n" +
+                                            "আরবি বাজারে কেনাকাটার সময় বিক্রেতা সাধারণত বেশি দাম চায়। তখন ভদ্রভাবে দরদাম করতে এই ফ্রেজটি ব্যবহার করতে পারেন:\n" +
+                                            "💡 *\"Hatha ghali jiddan! Al-takhfeedh min fadlik.\"* (এটি অনেক দামি! দয়া করে কিছু ছাড় দিন।)\n\n" +
+                                            "📌 **সহজ অভিনন্দন ও সম্ভাষণ:**\n" +
+                                            "• *Ahlan Wa Sahlan* (তোমাকে উষ্ণ অভ্যর্থনা!)\n" +
+                                            "• *Kaifa Haluk?* (কেমন আছেন?)\n" +
+                                            "• *Shukran Jazeelan!* (আপনাকে অনেক ধন্যবাদ!)",
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            "BENGALI" -> {
+                                Text("🇧🇩 বাংলা ব্যাকরণ ও সাবলীল শব্দচয়ন!", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "📌 **ক্রিয়ার সঠিক রূপ ব্যবহার করুন:**\n" +
+                                            "পরিচিত ও গুরুজনদের ক্ষেত্রে সবসময় 'আপনি' এবং বন্ধুদের ক্ষেত্রে 'তুমি' ব্যবহার করুন।\n" +
+                                            "💡 ডাক্তারের সাথে কথা বলার ট্রিক: *\"নমস্কার ডাক্তারবাবু, আমার কয়েকদিন ধরে জ্বর হয়েছে।\"*\n\n" +
+                                            "📌 **সুন্দর বাংলা ফ্রেজ:**\n" +
+                                            "• *আপনাকে অশেষ ধন্যবাদ!* (প্রচুর আন্তরিকতা প্রকাশের জন্য)\n" +
+                                            "• *আপনার সাথে পরিচিত হয়ে খুব ভালো লাগলো।*\n" +
+                                            "• *সবার উপরে মানুষ সত্য, তাহার উপরে নাই।*",
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            "SPEED" -> {
+                                Text("🔊 এআই কণ্ঠের गति নিয়ন্ত্রণ করুন", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "মিত্র রোবটের কথা বলার গতি নির্ধারণ করতে স্লাইডারটি ব্যবহার করুন। আপনি যদি নতুন কোনো ভাষা শেখা শুরু করে থাকেন তবে গতি কমিয়ে (যেমন: ০.৮) শোনার পরামর্শ দেওয়া হচ্ছে।",
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("ধীর (0.5x)", fontSize = 10.sp, color = Color.Gray)
+                                    Slider(
+                                        value = speechRateValue,
+                                        onValueChange = { viewModel.speechRate.value = it },
+                                        valueRange = 0.5f..2.0f,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text("দ্রুত (2.0x)", fontSize = 10.sp, color = Color.Gray)
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                                ) {
+                                    Text(
+                                        text = "বর্তমান গতি: ${"%.2f".format(speechRateValue)}x",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Button(
+                                        onClick = { viewModel.speakText("Testing current speech rate of LingoPlay Mitra AI companion.") },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("টেস্ট স্পিচ (Test)", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2479,7 +2790,11 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                         }
                     } else {
                         items(practiceHistory) { item ->
-                            PracticeBubble(item = item, onSpeak = { viewModel.speakText(item.text) })
+                            PracticeBubble(
+                                item = item, 
+                                onSpeak = { viewModel.speakText(item.text) },
+                                onSpeakCorrection = { viewModel.speakText(it) }
+                            )
                         }
                     }
 
@@ -2559,7 +2874,11 @@ fun ChatbotScreen(viewModel: MainViewModel) {
 }
 
 @Composable
-fun PracticeBubble(item: com.example.ui.PracticeMessage, onSpeak: () -> Unit) {
+fun PracticeBubble(
+    item: com.example.ui.PracticeMessage, 
+    onSpeak: () -> Unit,
+    onSpeakCorrection: (String) -> Unit
+) {
     val isUser = item.isUser
     val alignment = if (isUser) Alignment.End else Alignment.Start
     val containerColor = if (isUser) {
@@ -2630,6 +2949,18 @@ fun PracticeBubble(item: com.example.ui.PracticeMessage, onSpeak: () -> Unit) {
                 }
             }
         }
+        
+        // Inline expandable score/mistake report
+        if (!isUser && item.feedback != null) {
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .padding(horizontal = 12.dp, vertical = 2.dp)
+            ) {
+                TutorFeedbackCard(feedback = item.feedback, onSpeakCorrection = onSpeakCorrection)
+            }
+        }
+
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = if (isUser) "Me" else "AI Tutor (Practice) 🔊",
