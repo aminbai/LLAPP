@@ -31,6 +31,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.data.*
 import com.example.ui.MainViewModel
+import com.example.ui.PracticeMessage
 import com.example.ui.theme.*
 
 // --- Reactive Localization Translator Objects ---
@@ -2161,9 +2162,11 @@ fun ChatbotScreen(viewModel: MainViewModel) {
     val practiceScore by viewModel.conversationPracticeScore.collectAsState()
     val practiceFeedback by viewModel.conversationPracticeFeedback.collectAsState()
     val isPracticingLoading by viewModel.isConversationPracticeLoading.collectAsState()
+    val practiceHistory by viewModel.practiceDialogueHistory.collectAsState()
 
     var selectedScenarioId by remember { mutableStateOf("cafe") }
     var practiceUserReply by remember { mutableStateOf("") }
+    var showRobotTipDialog by remember { mutableStateOf(false) }
 
     val scenarios = remember {
         listOf(
@@ -2185,87 +2188,114 @@ fun ChatbotScreen(viewModel: MainViewModel) {
             ),
             PracticeScenario(
                 id = "friend",
-                titleBn = "🤝 নতুন বন্ধুর সাথে পরিচিতি",
-                titleEn = "Meeting a New Friend",
-                description = "You meet a native speaker at a university campus. Introduce yourself and start a warm chat in the language.",
+                titleBn = "🤝 আরবী বন্ধুর সাহায্য",
+                titleEn = "Meeting a New Arabic Friend",
+                description = "You meet a friendly native speaker at the university. Introduce yourself and start a warm chat in Arabic.",
                 initialMessage = "Assalamu Alaikum! My friend, I am learning Arabic and came to study. What is your name and where are you from?",
                 initialMessageTranslation = "আসসালামু আলাইকুম! আমার বন্ধু, আমি আরবী শিখছি এবং পড়াশোনা করতে এসেছি। আপনার নাম কী এবং আপনি কোথা থেকে এসেছেন?"
+            ),
+            PracticeScenario(
+                id = "shopping",
+                titleBn = "🛍️ আরবী বাজারে দরদাম",
+                titleEn = "Shopping at an Arabic Souq",
+                description = "You are buying traditional souvenirs. Ask for the price and bargain politely in Arabic.",
+                initialMessage = "Marhaban! Ahlan Wa Sahlan. Look at these beautiful lamps. It is only 100 Riyals. Would you like to buy?",
+                initialMessageTranslation = "মারহাবান! আহলান ওয়া সাহলান। এই সুন্দর বাতিগুলো দেখুন। এটার দাম মাত্র ১০০ রিয়াল। আপনি কি কিনতে চান?"
+            ),
+            PracticeScenario(
+                id = "doctor",
+                titleBn = "🩺 ডাক্তারের সাথে বাংলায় কথা",
+                titleEn = "Consultation with a Doctor",
+                description = "Consult a Bengali doctor about feeling unwell. Describe your symptoms clearly in Bengali.",
+                initialMessage = "নমস্কার! বসুন, আপনার কী হয়েছে বলুন তো? গত কয়দিন ধরে কেমন বোধ করছেন?",
+                initialMessageTranslation = "Hello! Please sit. Tell me what's wrong with you? How have you been feeling for the past few days?"
             )
         )
     }
 
     val activeScenario = scenarios.firstOrNull { it.id == selectedScenarioId } ?: scenarios[0]
 
+    // Whenever scenario selection changes, reset and initialize history
+    LaunchedEffect(selectedScenarioId) {
+        viewModel.startNewPracticeScenario(activeScenario.initialMessage, activeScenario.initialMessageTranslation)
+    }
+
+    if (showRobotTipDialog) {
+        AlertDialog(
+            onDismissRequest = { showRobotTipDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showRobotTipDialog = false }) {
+                    Text("বুঝেছি (Got it!)", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Star, contentDescription = "", tint = Color(0xFFFFCC00))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("মিত্র রোবটের ইন্টারেক্টিভ গাইড!", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("🤖 প্রিয় শিক্ষার্থী!  মিত্র রোবটের সাহায্যে ভাষা শিক্ষার স্পেশাল ফিচারসমূহ:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("🗣️ **লাগাতার কথোপকথন:** মেসেজ পাঠিয়ে দেওয়ার পর এআই শিক্ষক আপনার উত্তর মূল্যায়ন ও অনুবাদ করে ব্যাকরণগত পরামর্শ দেবে।", fontSize = 12.sp)
+                        Text("💬 **রিয়েলটাইম লিসেনিং:** স্পিকার আইকনে ট্যাপ করে প্রতিটি বাক্যের সঠিক উচ্চারণ শুনে নিতে পারেন সহজেই!", fontSize = 12.sp)
+                    }
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .testTag("chatbot_page_root")
+            .padding(12.dp)
     ) {
-        // Sliding Segmented Tab Header row
+        // Toggle/Switch Tabs at top
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp)),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (activeSubTab == "CHAT") MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .clickable { activeSubTab = "CHAT" }
-                    .padding(vertical = 12.dp)
-                    .testTag("subtab_chat"),
-                contentAlignment = Alignment.Center
+            Button(
+                onClick = { activeSubTab = "CHAT" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeSubTab == "CHAT") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    contentColor = if (activeSubTab == "CHAT") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).height(44.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Chatbot",
-                        tint = if (activeSubTab == "CHAT") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    Icon(imageVector = Icons.Default.Build, contentDescription = "", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        "সাধারণ চ্যাটবট",
-                        color = if (activeSubTab == "CHAT") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
+                    Text("মিত্র চ্যাট (AI Chat)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (activeSubTab == "PRACTICE") MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .clickable { 
-                        activeSubTab = "PRACTICE"
-                        viewModel.resetConversationPractice()
-                        practiceUserReply = ""
-                    }
-                    .padding(vertical = 12.dp)
-                    .testTag("subtab_practice"),
-                contentAlignment = Alignment.Center
+
+            Button(
+                onClick = { activeSubTab = "PRACTICE" },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeSubTab == "PRACTICE") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    contentColor = if (activeSubTab == "PRACTICE") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).height(44.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Practice",
-                        tint = if (activeSubTab == "PRACTICE") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    Icon(imageVector = Icons.Default.Star, contentDescription = "", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        "পরিস্থিতি অনুশীলন",
-                        color = if (activeSubTab == "PRACTICE") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
+                    Text("ভাষা অনুশীলন (Practice)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2276,18 +2306,18 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.03f)))),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().clickable { showRobotTipDialog = true }
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Micro Robot model drawing inside header
-                    RobotAssistant(state = rState, modifier = Modifier.size(70.dp), robotSize = 60.dp)
+                    RobotAssistant(state = rState, modifier = Modifier.size(70.dp).clickable { showRobotTipDialog = true }, robotSize = 60.dp)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("🤖 LingoPlay AI Assistant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Language Tutor & Translator on demand", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("🤖  মিত্র এআই শিক্ষক বন্ধু", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("৩টি ভাষা শেখার সবচেয়ে সহজ সমাধান! (ক্লিক করুন স্পেশাল টিপসের জন্য)", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     IconButton(onClick = { viewModel.clearChatLogs() }) {
@@ -2341,7 +2371,7 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                 OutlinedTextField(
                     value = userText,
                     onValueChange = { userText = it },
-                    label = { Text("Ask anything... ইংরেজী বা আরবী অনুবাদ?") },
+                    label = { Text("মিত্র শিক্ষককে বাংলায় বা অন্য ভাষায় জিজ্ঞাসা করুন...") },
                     modifier = Modifier.weight(1f).testTag("chat_input_textfield"),
                     shape = RoundedCornerShape(16.dp),
                     trailingIcon = {
@@ -2374,14 +2404,13 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "🎯 পরিস্থিতি বা বিষয় বেছে নিন (Select Scenario)",
+                    text = "🎯 অনর্গল শিক্ষার বিষয় নির্বাচন (Select Scenario)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
 
                 // Horizontally scrollable Scenario selectors
@@ -2389,7 +2418,7 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 12.dp),
+                        .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     scenarios.forEach { scenario ->
@@ -2404,15 +2433,14 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                                 if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
                             ),
                             modifier = Modifier
-                                .width(160.dp)
+                                .width(170.dp)
                                 .clickable {
                                     selectedScenarioId = scenario.id
-                                    viewModel.resetConversationPractice()
                                     practiceUserReply = ""
                                 }
                                 .testTag("scenario_card_${scenario.id}")
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.padding(10.dp)) {
                                 Text(
                                     text = scenario.titleBn,
                                     fontSize = 12.sp,
@@ -2420,256 +2448,195 @@ fun ChatbotScreen(viewModel: MainViewModel) {
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    text = scenario.titleEn,
-                                    fontSize = 11.sp,
-                                    color = Color.Gray,
-                                    maxLines = 1
-                                )
                             }
                         }
                     }
                 }
 
-                // Description box
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(12.dp),
+                // Dialogue continuous practice log
+                LazyColumn(
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp)
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = activeScenario.description,
-                            fontSize = 12.sp,
-                            fontStyle = FontStyle.Italic
-                        )
-                    }
-                }
-
-                // AI Dialogue counterpart card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RobotAssistant(state = rState, modifier = Modifier.size(50.dp), robotSize = 42.dp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("🗣️ এআই শিক্ষক সঙ্গী (AI Teacher)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                                Text("অনুবাদ বুঝে সঠিক উত্তর দেওয়ার চেষ্টা করুন", fontSize = 11.sp, color = Color.Gray)
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(10.dp))
-                        
-                        // Active prompt bubble
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                .padding(12.dp)
-                        ) {
-                            Column {
+                    if (practiceHistory.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
-                                    text = activeScenario.initialMessage,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "অনুবাদ: " + activeScenario.initialMessageTranslation,
-                                    fontSize = 12.sp,
+                                    text = "অনুশীলন শুরু করতে নিচে মিত্রকে উত্তর দিন!\n(Reply to our AI companion below to practice language!)",
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 13.sp,
                                     color = Color.Gray
                                 )
                             }
                         }
+                    } else {
+                        items(practiceHistory) { item ->
+                            PracticeBubble(item = item, onSpeak = { viewModel.speakText(item.text) })
+                        }
+                    }
+
+                    if (isPracticingLoading) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "এআই শিক্ষক বাক্য মূল্যায়ন ও অনুবাদের কাজ সম্পন্ন করছেন...",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Active loading feedback state
-                if (isPracticingLoading) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                "ধৈর্য ধরুন! আপনার উত্তরটি এআই শিক্ষক দ্বারা মূল্যায়ন করা হচ্ছে...",
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
-                            )
-                            Text(
-                                "Checking grammar, spelling & formulation guide",
-                                color = Color.Gray,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                } else if (practiceFeedback != null) {
-                    // Display evaluation feedback
-                    val parsed = parseFeedback(practiceFeedback)
-                    val score = practiceScore ?: 80
-
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "✨ মূল্যায়ন রিপোর্ট (Grade Report)",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                
-                                // Beautiful circular score indicator badge
-                                val scoreColor = when {
-                                    score >= 85 -> Color(0xFF10B981) // Green
-                                    score >= 60 -> Color(0xFFFBBF24) // Yellow/orange
-                                    else -> Color(0xFFEF4444) // Red
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(scoreColor.copy(alpha = 0.2f))
-                                        .border(1.dp, scoreColor, RoundedCornerShape(12.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text(
-                                        text = "$score / 100",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = scoreColor
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            // Custom feedback section tabs
-                            FeedbackSection(
-                                title = "🔍 ভুলত্রুটি ও পরামর্শ (Mistakes Identified)",
-                                text = parsed["MISTAKES"] ?: (practiceFeedback ?: "Excellent work!")
-                            )
-                            
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            parsed["CORRECTION"]?.let {
-                                FeedbackSection(
-                                    title = "💡 আদর্শ জবাব (Suggested Response)",
-                                    text = it,
-                                    isHighlight = true
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                            }
-
-                            parsed["EXPLANATION"]?.let {
-                                FeedbackSection(
-                                    title = "📖 এআই ব্যাখ্যা (Explanation in Bengali)",
-                                    text = it
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Button(
-                                onClick = { viewModel.resetConversationPractice() },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text("আরেকবার চেষ্টা করুন (Practice Again)", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                } else {
-                    // Show Input panel
-                    Text(
-                        text = "✍️ আপনার চ্যাট উত্তর লিখুন (Write Your Reply)",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
-                    )
-
+                // Input control panel for Practice
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
                         value = practiceUserReply,
                         onValueChange = { practiceUserReply = it },
-                        placeholder = { Text("Example: I would like to order a double espresso and some pancakes, please.") },
+                        placeholder = { Text("মিত্রকে উত্তর দিন (যেমন: Hello barista, I need coffee...)") },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(110.dp)
+                            .weight(1f)
                             .testTag("practice_reply_input"),
-                        shape = RoundedCornerShape(16.dp),
-                        maxLines = 4
+                        shape = RoundedCornerShape(14.dp),
+                        enabled = !isPracticingLoading,
+                        trailingIcon = {
+                            if (practiceUserReply.isNotBlank()) {
+                                IconButton(onClick = { practiceUserReply = "" }) {
+                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "")
+                                }
+                            }
+                        }
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = {
-                            if (practiceUserReply.isNotBlank()) {
-                                viewModel.evaluateConversationPractice(
+                            if (practiceUserReply.isNotBlank() && !isPracticingLoading) {
+                                viewModel.submitPracticeUserReply(
                                     scenarioTitle = activeScenario.titleEn,
-                                    promptText = activeScenario.initialMessage,
                                     userResponse = practiceUserReply
                                 )
+                                practiceUserReply = ""
                             }
                         },
-                        enabled = practiceUserReply.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.fillMaxWidth().testTag("practice_submit_button"),
-                        shape = RoundedCornerShape(12.dp)
+                        enabled = practiceUserReply.isNotBlank() && !isPracticingLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.testTag("practice_submit_button"),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                     ) {
-                        Text(
-                            "মূল্যায়ন করুন ও পয়েন্ট পান (Submit for AI Review)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Send, contentDescription = "", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("পাঠান", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun PracticeBubble(item: com.example.ui.PracticeMessage, onSpeak: () -> Unit) {
+    val isUser = item.isUser
+    val alignment = if (isUser) Alignment.End else Alignment.Start
+    val containerColor = if (isUser) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    val textColor = if (isUser) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val cornerShape = if (isUser) {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp)
+    } else {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 16.dp)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("practice_bubble_${if (isUser) "user" else "tutor"}"),
+        horizontalAlignment = alignment
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+        ) {
+            if (isUser) {
+                IconButton(onClick = onSpeak, modifier = Modifier.size(32.dp)) {
+                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Read out loud", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 240.dp)
+                    .clip(cornerShape)
+                    .background(containerColor)
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.02f))
+                        ),
+                        shape = cornerShape
+                    )
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = item.text,
+                        color = textColor,
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
+                    )
+                    if (item.translation != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "অনুবাদ: ${item.translation}",
+                            color = textColor.copy(alpha = 0.7f),
+                            fontSize = 11.sp,
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            }
+            
+            if (!isUser) {
+                IconButton(onClick = onSpeak, modifier = Modifier.size(32.dp)) {
+                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Read out loud", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = if (isUser) "Me" else "AI Tutor (Practice) 🔊",
+            fontSize = 10.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
     }
 }
 

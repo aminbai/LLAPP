@@ -96,6 +96,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     private val _isPracticingLoading = MutableStateFlow(false)
     val isConversationPracticeLoading: StateFlow<Boolean> = _isPracticingLoading.asStateFlow()
 
+    private val _practiceDialogueHistory = MutableStateFlow<List<PracticeMessage>>(emptyList())
+    val practiceDialogueHistory: StateFlow<List<PracticeMessage>> = _practiceDialogueHistory.asStateFlow()
+
     // Sync, Backup, and Notification states
     private val _backupCodeResult = MutableStateFlow<String?>(null)
     val backupCodeResult: StateFlow<String?> = _backupCodeResult.asStateFlow()
@@ -521,27 +524,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun evaluateConversationPractice(scenarioTitle: String, promptText: String, userResponse: String) {
+    fun startNewPracticeScenario(initialMessage: String, initialTranslation: String) {
+        _practiceDialogueHistory.value = listOf(
+            PracticeMessage(
+                isUser = false,
+                text = initialMessage,
+                translation = initialTranslation
+            )
+        )
+        _practiceScore.value = null
+        _practiceFeedback.value = null
+        _isPracticingLoading.value = false
+    }
+
+    fun submitPracticeUserReply(scenarioTitle: String, userResponse: String) {
         if (userResponse.isBlank()) return
+        val currentHistory = _practiceDialogueHistory.value.toMutableList()
+        
+        // Add user response turn to history list first
+        currentHistory.add(PracticeMessage(isUser = true, text = userResponse))
+        _practiceDialogueHistory.value = currentHistory
+        
         viewModelScope.launch {
             _isPracticingLoading.value = true
             _robotState.value = RobotState.THINKING
             _practiceScore.value = null
             _practiceFeedback.value = null
-            
+
+            // Build dialogue context for the model
+            val historyBuilder = StringBuilder()
+            currentHistory.forEach { msg ->
+                val speaker = if (msg.isUser) "Student" else "AI Companion (Roleplayer)"
+                historyBuilder.append("$speaker: ${msg.text}\n")
+            }
+
             val sysInstruction = """
-                You are an expert bilingual English/Arabic/Bengali language advisor.
-                The student is practicing a dialogue for the scenario: "$scenarioTitle".
-                The companion said: "$promptText".
-                The student replied in English/Arabic/Bengali with: "$userResponse".
+                You are an expert bilingual English/Arabic/Bengali language teacher and supportive conversational companion.
+                The student is practicing a dialogue in English, Arabic, or Bengali for the scenario: "$scenarioTitle".
                 
-                Analyze the response. Grade grammar, spelling, natural flavor, and vocabulary.
-                Provide clear feedback. Provide a score from 0 to 100.
-                Format your response EXACTLY like this structure:
+                Identify what language the user responded in and assess their LAST reply: "$userResponse".
+                Grade their grammar, vocabulary, expression, and spelling, and assign a score out of 100.
+                
+                THEN, acting as the companion roleplayer in this scenario, write your NEXT natural dialogue reply to continue the conversation naturally in the target language being practiced, and provide its Bengali translation. Be interactive, helpful, and ask a relevant question or prompt to keep the conversation going ("লাগাতার").
+                
+                Format your response EXACTLY structure like this:
                 SCORE: [Write only the numeric score out of 100, e.g. 85]
                 MISTAKES: [List any grammatical errors, pronunciation/spelling flaws, or wrong words in bullet points, or say 'Amazing! No mistakes found.']
                 CORRECTION: [Write the best, natural target sentence correction]
                 EXPLANATION: [A friendly explanation in Bengali about the mistakes and pronunciation/social/grammar nuances]
+                NEXT_AI_MESSAGE: [Write your next natural roleplay dialogue line as the companion/barista/friend, continuing the session]
+                NEXT_AI_TRANSLATION: [Bengali translation of your next dialogue turn]
             """.trimIndent()
             
             val rawResult = queryGemini(userResponse, sysInstruction)
@@ -550,15 +582,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             // Extract numeric score
             val scorePattern = "SCORE:\\s*(\\d+)".toRegex(RegexOption.IGNORE_CASE)
             val scoreVal = scorePattern.find(rawResult)?.groupValues?.getOrNull(1)?.toIntOrNull()
-            _practiceScore.value = scoreVal ?: 80
+            val score = scoreVal ?: 80
+            _practiceScore.value = score
             
-            // Award points based on performance
-            val earnedXp = if (scoreVal != null) (scoreVal / 2).coerceIn(10, 50) else 30
+            // Extract next companion message and translation
+            var nextAiMsg = ""
+            var nextAiTrans = ""
+            
+            rawResult.lines().forEach { line ->
+                val trimmed = line.trim()
+                if (trimmed.uppercase().startsWith("NEXT_AI_MESSAGE:")) {
+                    nextAiMsg = trimmed.substringAfter("NEXT_AI_MESSAGE:").trim()
+                } else if (trimmed.uppercase().startsWith("NEXT_AI_TRANSLATION:")) {
+                    nextAiTrans = trimmed.substringAfter("NEXT_AI_TRANSLATION:").trim()
+                }
+            }
+            
+            if (nextAiMsg.isEmpty()) {
+                nextAiMsg = "Perfect! Let's continue. What else would you like?"
+                nextAiTrans = "চমৎকার! আসুন চালিয়ে যাই। আপনি আর কি করতে চান?"
+            }
+            
+            val earnedXp = (score / 2).coerceIn(10, 50)
             val profile = repository.userProfileFlow.firstOrNull() ?: userProfile.value
             repository.updateProfile(profile.copy(points = profile.points + earnedXp))
             
+            // Add the generated next AI turn to the dialog list history
+            val updatedHistory = _practiceDialogueHistory.value.toMutableList()
+            updatedHistory.add(
+                PracticeMessage(
+                    isUser = false,
+                    text = nextAiMsg,
+                    translation = nextAiTrans,
+                    score = score,
+                    feedback = rawResult
+                )
+            )
+            _practiceDialogueHistory.value = updatedHistory
+            
             _robotState.value = RobotState.TALKING
-            _notificationToast.value = "অনুশীলন সম্পন্ন! +$earnedXp XP অর্জিত হয়েছে! (Practice completed!)"
+            // Automatically speak the next line for complete interactive speech practice
+            speakText(nextAiMsg)
+            _notificationToast.value = "অনুশীলন সফল! +$earnedXp XP অর্জিত হয়েছে! (Dialog practice updated!)"
             _robotState.value = RobotState.IDLE
             _isPracticingLoading.value = false
         }
@@ -568,6 +633,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         _practiceScore.value = null
         _practiceFeedback.value = null
         _isPracticingLoading.value = false
+        _practiceDialogueHistory.value = emptyList()
     }
 
     fun clearChatLogs() {
@@ -838,3 +904,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 }
+
+data class PracticeMessage(
+    val isUser: Boolean,
+    val text: String,
+    val translation: String? = null,
+    val score: Int? = null,
+    val feedback: String? = null
+)
